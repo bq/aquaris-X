@@ -17,6 +17,7 @@
  */
 #ifndef __LINUX_FT5X06_TS_H__
 #define __LINUX_FT5X06_TS_H__
+#define SUPPORT_READ_TP_VERSION
 
 #define FT5X06_ID		0x55
 #define FT5X16_ID		0x0A

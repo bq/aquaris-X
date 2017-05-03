@@ -13,17 +13,18 @@
 qcom,qrd_msm8937_sku1_2920mah {
 	/* #QRD8937_2800mAh_China_data_averaged_MasterSlave_Oct30th2015*/
 	qcom,max-voltage-uv = <4400000>;
-	qcom,nom-batt-capacity-mah = <2800>;
-	qcom,batt-id-kohm = <90>;
+	qcom,nom-batt-capacity-mah = <3100>;
+	qcom,batt-id-kohm = <100>;
 	qcom,battery-beta = <3380>;
 	qcom,battery-type = "qrd_msm8937_sku1_2800mah";
-	qcom,fastchg-current-ma = <2600>;
+	qcom,fastchg-current-ma = <3000>;
 	qcom,fg-cc-cv-threshold-mv = <4390>;
 	qcom,chg-rslow-comp-c1 = <6733839>;
 	qcom,chg-rslow-comp-c2 = <23336040>;
 	qcom,chg-rs-to-rslow = <1049243>;
 	qcom,chg-rslow-comp-thr = <0xDB>;
 	qcom,checksum = <0x7E2A>;
+	qcom,thermal-coefficients = [C5 86 BE 50 D1 37];
 	qcom,gui-version = "PMI8950GUI - 2.0.0.14";
 	qcom,fg-profile-data = [
 		C6 83 8A 77

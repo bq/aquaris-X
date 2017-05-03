@@ -25,6 +25,8 @@
 #include <linux/of_device.h>
 #include <linux/radix-tree.h>
 #include <linux/qpnp/pwm.h>
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
 
 #define QPNP_LPG_DRIVER_NAME	"qcom,qpnp-pwm"
 #define QPNP_LPG_CHANNEL_BASE	"qpnp-lpg-channel-base"
@@ -2086,6 +2088,12 @@ static int qpnp_pwm_probe(struct spmi_device *spmi)
 {
 	struct qpnp_pwm_chip	*pwm_chip;
 	int			rc;
+	int			gpio_127,gpio_128;
+
+	gpio_127 = gpio_get_value(127);
+	gpio_128 = gpio_get_value(128);
+	if((0 != gpio_127)&&(1 != gpio_128))
+		return 0;
 
 	pwm_chip = kzalloc(sizeof(*pwm_chip), GFP_KERNEL);
 	if (pwm_chip == NULL) {

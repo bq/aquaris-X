@@ -3545,6 +3545,8 @@ rtn:
 static const struct snd_soc_component_driver msm_q6_mi2s_dai_component = {
 	.name		= "msm-dai-q6-mi2s",
 };
+
+extern int es9118_exist;
 static int msm_dai_q6_mi2s_dev_probe(struct platform_device *pdev)
 {
 	struct msm_dai_q6_mi2s_dai_data *dai_data;
@@ -3557,6 +3559,17 @@ static int msm_dai_q6_mi2s_dev_probe(struct platform_device *pdev)
 
 	rc = of_property_read_u32(pdev->dev.of_node, q6_mi2s_dev_id,
 				  &mi2s_intf);
+
+	if(mi2s_intf == 3 && es9118_exist)
+	{
+		printk("msm_dai_q6_mi2s_dev_probe setting for es9118\n");
+		msm_dai_q6_mi2s_dai[mi2s_intf].playback.rates = SNDRV_PCM_RATE_44100 | SNDRV_PCM_RATE_48000 | SNDRV_PCM_RATE_8000 |
+			SNDRV_PCM_RATE_16000 | SNDRV_PCM_RATE_88200 | SNDRV_PCM_RATE_96000 |
+			SNDRV_PCM_RATE_176400 | SNDRV_PCM_RATE_192000;
+		msm_dai_q6_mi2s_dai[mi2s_intf].playback.formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S24_LE;
+	}
+
+
 	if (rc) {
 		dev_err(&pdev->dev,
 			"%s: missing 0x%x in dt node\n", __func__, mi2s_intf);

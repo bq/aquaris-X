@@ -202,9 +202,9 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 
-			qcom,iterm-ma = <100>;
-			qcom,float-voltage-mv = <4200>;
-			qcom,resume-delta-mv = <200>;
+			qcom,iterm-ma = <150>;
+			qcom,float-voltage-mv = <4400>;
+			qcom,resume-delta-mv = <100>;
 			qcom,chg-inhibit-fg;
 			qcom,rparasitic-uohm = <100000>;
 			qcom,bms-psy-name = "bms";
@@ -317,16 +317,23 @@
 			compatible = "qcom,qpnp-fg";
 			#address-cells = <1>;
 			#size-cells = <1>;
-			qcom,resume-soc = <95>;
+			qcom,resume-soc = <99>;
 			status = "okay";
 			qcom,bcl-lm-threshold-ma = <127>;
 			qcom,bcl-mh-threshold-ma = <405>;
-			qcom,fg-iterm-ma = <150>;
-			qcom,fg-chg-iterm-ma = <100>;
+			qcom,fg-iterm-ma = <180>;
+			qcom,fg-chg-iterm-ma = <150>;
 			qcom,pmic-revid = <&pmi8950_revid>;
-			qcom,fg-cutoff-voltage-mv = <3500>;
+			qcom,fg-cutoff-voltage-mv = <3400>;
+                        qcom,fg-cc-cv-threshold-mv = <4390>;
 			qcom,cycle-counter-en;
+                        qcom,cycle-counter-low-soc = <15>;
+                        qcom,cycle-counter-high-soc = <85>;
 			qcom,capacity-learning-on;
+                        qcom,cl-max-temp-decidegc = <450>;
+                        qcom,cl-min-temp-decidegc = <150>;
+                        qcom,cl-max-start-soc = <5>;
+                        qcom,capacity-learning-feedback;
 
 			qcom,fg-soc@4000 {
 			status = "okay";
@@ -619,22 +626,23 @@
 			interrupts = <0x3 0xc0 0x0>,
 					<0x3 0xc0 0x1>;
 			interrupt-names = "sc-irq", "play-irq";
-			vcc_pon-supply = <&pon_perph_reg>;
-			qcom,play-mode = "direct";
-			qcom,wave-play-rate-us = <5263>;
-			qcom,actuator-type = "erm";
-			qcom,wave-shape = "square";
+			qcom,play-mode = "buffer";
+			qcom,wave-play-rate-us = <4255>;
+			qcom,actuator-type = "lra";
+			qcom,wave-shape = "sine";
 			qcom,vmax-mv = <2000>;
-			qcom,ilim-ma = <800>;
-			qcom,sc-deb-cycles = <8>;
+			qcom,ilim-ma = <90>;
+			qcom,sc-deb-cycles = <1>;
 			qcom,int-pwm-freq-khz = <505>;
-			qcom,en-brake;
-			qcom,brake-pattern = [03 03 00 00];
+			qcom,brake-pattern = [00 00 00 00];
 			qcom,use-play-irq;
 			qcom,use-sc-irq;
-			qcom,wave-samples = [3e 3e 3e 3e 3e 3e 3e 3e];
+			qcom,wave-samples = [7e 7e 7e 7e 7e 7e 7e];
 			qcom,wave-rep-cnt = <1>;
 			qcom,wave-samp-rep-cnt = <1>;
+			qcom,lra-auto-res-mode = "none";
+			qcom,lra-res-cal-period = <1>;
+			qcom,correct-lra-drive-freq;
 		};
 	};
 };

@@ -71,6 +71,8 @@
 	qcom,cons-sync-write-delay-us = <1000>;
 };
 
+/*
+
 &spmi_bus {
 	qcom,pmi8950@2 {
 		qcom,leds@a100 {
@@ -91,10 +93,13 @@
 	};
 };
 
+*/
+
 / {
 	qrd_batterydata: qcom,battery-data {
-		qcom,batt-id-range-pct = <15>;
-		#include "batterydata-qrd-sku1-4v4-2800mah.dtsi"
+		qcom,batt-id-range-pct = <30>;
+		#include "batterydata-qrd-jiade-4v4-3075mah.dtsi"
+		#include "batterydata-qrd-feimaotui-4v4-3090mah.dtsi"
 	};
 };
 
@@ -112,18 +117,30 @@
 	qcom,chg-led-support;
 	qcom,external-typec;
 	qcom,typec-psy-name = "typec";
-	qcom,thermal-mitigation = <3000 2500 2000 1500 1000 500 0>;
+	qcom,thermal-mitigation = <3000 2500 1950 1400 900 700>;
+	qcom,fastchg-current-ma = <2600>;
+	qcom,charging-timeout-mins = <768>;
+	qcom,fastchg-current-comp = <1200>;
+	/* 11 for 4.2V, 16 for 4.1V */
+	qcom,float-voltage-comp = <16>;
+	qcom,report-temp-by-d-work;
 	status = "okay";
+	qcom,override-usb-current;
 };
 
 &pmi8950_fg {
 	qcom,battery-data = <&qrd_batterydata>;
-	qcom,cold-bat-decidegc = <(-100)>;
-	qcom,cool-bat-decidegc = <0>;
-	qcom,warm-bat-decidegc = <550>;
+	qcom,cold-bat-decidegc = <0>;
+	qcom,cool-bat-decidegc = <150>;
+	qcom,warm-bat-decidegc = <450>;
 	qcom,hot-bat-decidegc = <550>;
 	qcom,bad-battery-detection-enable;
 	qcom,hold-soc-while-full;
+	qcom,fg-delta-soc = <1>;
+	qcom,fg-vbat-estimate-diff-mv = <200>;
+	qcom,fg-therm-delay-us = <3000>;
+	qcom,cold-hot-jeita-hysteresis = <20 20>;
+	qcom,ext-sense-type-mp;
 };
 
 &blsp1_uart0 {
@@ -181,13 +198,25 @@
 		1 &intc 0 221 0
 		2 &tlmm 133 0>;
 	interrupt-names = "hc_irq", "pwr_irq", "status_irq";
-	cd-gpios = <&tlmm 133 0x1>;
+	cd-gpios = <&tlmm 133 0x0>;
 
 	qcom,clk-rates = <400000 20000000 25000000 50000000 100000000
 								200000000>;
 	qcom,bus-speed-mode = "SDR12", "SDR25", "SDR50", "DDR50", "SDR104";
 
 	status = "ok";
+};
+
+&i2c_2 {
+	//Parallel-charger configuration
+	smb1351-charger@1d {
+		compatible = "qcom,smb1351-charger";
+		reg = <0x1d>;
+		qcom,parallel-en-pin-polarity = <1>;
+		qcom,parallel-charger;
+		qcom,float-voltage-mv = <4400>;
+		qcom,recharge-mv = <100>;
+	};
 };
 
 &i2c_5 { /* BLSP2 QUP1 (NFC) */
@@ -227,7 +256,7 @@
 &i2c_3 {
 	status = "ok";
 };
-
+/*
 &flash_led {
 	/delete-node/ qcom,flash_1;
 	/delete-node/ qcom,torch_1;
@@ -241,7 +270,7 @@
 &pm8953_vadc {
 	/delete-node/ chan@11;
 };
-
+*/
 &sdc2_cmd_on {
 	config {
 		drive-strength=<12>;

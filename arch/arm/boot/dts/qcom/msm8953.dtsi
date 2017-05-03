@@ -34,7 +34,7 @@
 		other_ext_mem: other_ext_region@0 {
 			compatible = "removed-dma-pool";
 			no-map;
-			reg = <0x0 0x85b00000 0x0 0xd00000>;
+			reg = <0x0 0x83300000 0x0 0x3800000>;
 		};
 
 		modem_mem: modem_region@0 {
@@ -120,6 +120,7 @@
 		i2c2 = &i2c_2;
 		i2c3 = &i2c_3;
 		i2c5 = &i2c_5;
+		i2c6  = &i2c_6;
 		spi3 = &spi_3;
 	};
 
@@ -676,6 +677,7 @@
 		qcom,bam-consumer-pipe-index = <8>;
 		qcom,bam-producer-pipe-index = <9>;
 		qcom,master-id = <86>;
+		status = "disabled";
 	};
 
 	i2c_2: i2c@78b6000 { /* BLSP1 QUP2 */
@@ -686,7 +688,7 @@
 		reg = <0x78b6000 0x600>;
 		interrupt-names = "qup_irq";
 		interrupts = <0 96 0>;
-		qcom,clk-freq-out = <400000>;
+		qcom,clk-freq-out = <100000>;
 		qcom,clk-freq-in  = <19200000>;
 		clock-names = "iface_clk", "core_clk";
 		clocks = <&clock_gcc clk_gcc_blsp1_ahb_clk>,
@@ -775,7 +777,31 @@
 			<&dma_blsp2 5 32 0x20000020 0x20>;
 		dma-names = "tx", "rx";
 	};
+i2c_6: i2c@7af6000 { /* BLSP2 QUP2 */
+		compatible = "qcom,i2c-msm-v2";
+		qcom,disable-dma;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg-names = "qup_phys_addr";
+		reg = <0x7af6000 0x600>;
+		interrupt-names = "qup_irq";
+		interrupts = <0 300 0>;
+		qcom,clk-freq-out = <400000>;
+		qcom,clk-freq-in  = <19200000>;
+		clock-names = "iface_clk", "core_clk";
+		clocks = <&clock_gcc clk_gcc_blsp2_ahb_clk>,
+			<&clock_gcc clk_gcc_blsp2_qup2_i2c_apps_clk>;
+		pinctrl-names = "i2c_active", "i2c_sleep";
+		pinctrl-0 = <&i2c_6_active>;
+		pinctrl-1 = <&i2c_6_sleep>;
+		qcom,noise-rjct-scl = <0>;
+		qcom,noise-rjct-sda = <0>;
+		qcom,master-id = <84>;
+		dmas = <&dma_blsp2 6 64 0x20000020 0x20>,
+			<&dma_blsp2 7 32 0x20000020 0x20>;
+		dma-names = "tx", "rx";
 
+	};
 	slim_msm: slim@c140000{
 		cell-index = <1>;
 		compatible = "qcom,slim-ngd";
@@ -1606,9 +1632,9 @@
 		qcom,ce-opp-freq = <100000000>;
 	};
 
-	qcom_seecom: qseecom@85b00000 {
+	qcom_seecom: qseecom@83300000 {
 		compatible = "qcom,qseecom";
-		reg = <0x85b00000 0x800000>;
+		reg = <0x83300000 0x3000000>;
 		reg-names = "secapp-region";
 		qcom,hlos-num-ce-hw-instances = <1>;
 		qcom,hlos-ce-hw-instance = <0>;
@@ -2018,7 +2044,7 @@
 
 		interrupts = <0 136 0>, <0 220 0>, <0 134 0>;
 		interrupt-names = "hs_phy_irq", "ss_phy_irq", "pwr_event_irq";
-
+		qcom,usbin-vadc = <&pmi8950_vadc>;
 		USB3_GDSC-supply = <&gdsc_usb30>;
 		vbus_dwc3-supply = <&smbcharger_charger_otg>;
 		qcom,usb-dbm = <&dbm_1p5>;
@@ -2381,18 +2407,25 @@
 
 &pm8953_mpps {
 	mpp@a100 {
-		/* MPP2 - PA_THERM config */
+		/* MPP2 - CASE_THERM config */
 		qcom,mode = <4>; /* AIN input */
 		qcom,invert = <1>; /* Enable MPP */
-		qcom,ain-route = <1>; /* AMUX 6 */
+		qcom,ain-route = <3>; /* AMUX 8 */
 		qcom,master-en = <1>;
 		qcom,src-sel = <0>; /* Function constant */
 	};
 
 	mpp@a300 {
-		/* MPP4 - CASE_THERM config */
+		/* MPP4 - LCD_PWM config */
+		qcom,mode-lcd = <1>; /* AIN input */
+		qcom,invert-lcd = <0>;  /* Enable MPP */
+		qcom,master-en-lcd = <1>;
+		qcom,src-sel-lcd = <5>; /* Function constant */
+		qcom,vin-sel-lcd = <2>;
+
+		/* MPP4 - SUB_BOARD_THERM config */
 		qcom,mode = <4>; /* AIN input */
-		qcom,invert = <1>; /* Enable MPP */
+		qcom,invert = <1>;  /* Enable MPP */
 		qcom,ain-route = <3>; /* AMUX 8 */
 		qcom,master-en = <1>;
 		qcom,src-sel = <0>; /* Function constant */
@@ -2432,7 +2465,7 @@
 		qcom,hw-settle-time = <2>;
 		qcom,fast-avg-setup = <0>;
 	};
-
+/*
 	chan@11 {
 		label = "pa_therm1";
 		reg = <0x11>;
@@ -2444,7 +2477,7 @@
 		qcom,fast-avg-setup = <0>;
 		qcom,vadc-thermal-node;
 	};
-
+*/
 	chan@32 {
 		label = "xo_therm";
 		reg = <0x32>;
@@ -2469,9 +2502,9 @@
 		qcom,vadc-thermal-node;
 	};
 
-	chan@13 {
+	chan@11 {
 		label = "case_therm";
-		reg = <0x13>;
+		reg = <0x11>;
 		qcom,decimation = <0>;
 		qcom,pre-div-channel-scaling = <0>;
 		qcom,calibration-type = "ratiometric";
@@ -2480,6 +2513,20 @@
 		qcom,fast-avg-setup = <0>;
 		qcom,vadc-thermal-node;
 	};
+
+	chan@13 {
+		label = "sub_board";
+		reg = <0x13>;
+		qcom,decimation = <0>;
+		qcom,pre-div-channel-scaling = <0>;
+		qcom,calibration-type = "ratiometric"; //absolute 625mV or 1.25V
+		qcom,scale-function = <2>;//0 means c raw adc code to volt, 2 is for tempratue
+		qcom,hw-settle-time = <2>;//2 means 200ms
+		qcom,fast-avg-setup = <0>;//0 with only one average measurement
+		qcom,vadc-thermal-node;
+		status = "okay";
+	};
+
 };
 
 &pm8953_adc_tm {

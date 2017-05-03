@@ -1,0 +1,63 @@
+/* Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+qcom,batterydata-qrd-jiade-4v4-3075mah {
+	/* batterydata-qrd-jiade-4v4-3075mah*/
+	qcom,max-voltage-uv = <4400000>;
+	qcom,nom-batt-capacity-mah = <3075>;
+	qcom,batt-id-kohm = <100>;
+	qcom,battery-beta = <3435>;
+	qcom,battery-type = "qrd-jiade-4v4-3075mah";
+	qcom,fastchg-current-ma = <2600>;
+	qcom,fg-cc-cv-threshold-mv = <4400>;
+	qcom,chg-rslow-comp-c1 = <3296068>;
+	qcom,chg-rslow-comp-c2 = <4917545>;
+	qcom,chg-rs-to-rslow = <714274>;
+	qcom,chg-rslow-comp-thr = <0xAB>;
+	qcom,checksum = <0xDBE6>;
+	qcom,thermal-coefficients = [C5 86 BE 50 D1 37];
+	qcom,gui-version = "PMI8950GUI - 2.0.0.16";
+	qcom,fg-profile-data = [
+		 F0 83 6E 7D 
+		 9C 81 27 7C 
+		 5B 83 13 66 
+		 8D 82 25 8D 
+		 14 82 94 99 
+		 0F BC F5 C3 
+		 5B 12 07 88 
+		 22 7E 11 82 
+		 8A 7C 52 83 
+		 04 6A 3F 79 
+		 93 86 2A 82 
+		 41 9A 8D BD 
+		 E6 CA 5A 0E 
+		 F3 0B 02 5A 
+		 14 70 A5 FD 
+		 5E 44 52 3E 
+		 C6 3A 00 00 
+		 3A 46 1C 31 
+		 FD 36 00 00 
+		 00 00 00 00 
+		 00 00 00 00 
+		 84 6A A6 69 
+		 04 70 2B 89 
+		 CA 74 A4 69 
+		 47 6E A8 78 
+		 4A 6F F8 63 
+		 FD 6F A3 A2 
+		 1D 78 61 59 
+		 5F A0 71 0C 
+		 28 00 FF 36 
+		 F0 11 30 03 
+		 00 00 00 0C 
+	];
+};

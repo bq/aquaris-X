@@ -35,6 +35,8 @@ obj-$(CONFIG_TOUCHSCREEN_EETI)		+= eeti_ts.o
 obj-$(CONFIG_TOUCHSCREEN_ELO)		+= elo.o
 obj-$(CONFIG_TOUCHSCREEN_EGALAX)	+= egalax_ts.o
 obj-$(CONFIG_TOUCHSCREEN_FT5X06)	+= ft5x06_ts.o
+obj-$(CONFIG_TOUCHSCREEN_ILI2120)	+= ilitek_aim.o ilitek_sensor_test.o ilitek_tool.o ilitek_update.o lct_tp_fm_info.o lct_ctp_upgrade.o
+obj-$(CONFIG_TOUCHSCREEN_FTS) += focaltech_touch/
 obj-$(CONFIG_TOUCHSCREEN_FUJITSU)	+= fujitsu_ts.o
 obj-$(CONFIG_TOUCHSCREEN_GEN_VKEYS)	+= gen_vkeys.o
 obj-$(CONFIG_TOUCHSCREEN_ILI210X)	+= ili210x.o
@@ -90,3 +92,9 @@ obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_I2C_RMI4)		+= synaptics_i2c_rmi4.o
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_RMI4_DEV)	+= synaptics_rmi_dev.o
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE) 	+= synaptics_fw_update.o
 obj-$(CONFIG_TOUCHSCREEN_GT9XX)		+= gt9xx/
+
+
+obj-$(CONFIG_TOUCHSCREEN_FT5X06)	+= lct_tp_fm_info.o
+obj-$(CONFIG_TOUCHSCREEN_FT5X06)	+= lct_ctp_selftest.o
+obj-$(CONFIG_TOUCHSCREEN_FT5X06)	+= lct_ctp_upgrade.o
+obj-$(CONFIG_TOUCHSCREEN_FT5X06)	+= lct_if_ctp_upgrade.o

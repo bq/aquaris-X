@@ -328,9 +328,9 @@
 			"MIC BIAS External", "Secondary Mic",
 			"AMIC1", "MIC BIAS External",
 			"AMIC2", "MIC BIAS External2",
-			"AMIC3", "MIC BIAS External",
-			"WSA_SPK OUT", "VDD_WSA_SWITCH",
-			"SpkrMono WSA_IN", "WSA_SPK OUT";
+			"AMIC3", "MIC BIAS External";//,
+			//"WSA_SPK OUT", "VDD_WSA_SWITCH",
+			//"SpkrMono WSA_IN", "WSA_SPK OUT";
 
 		qcom,hdmi-dba-codec-rx;
 

@@ -40,6 +40,10 @@
 				qcom,pon-type = <0>;
 				qcom,pull-up = <1>;
 				linux,code = <116>;
+				qcom,support-reset = <1>;
+				qcom,s1-timer = <10256>;
+				qcom,s2-timer = <2000>;
+				qcom,s2-type = <8>;
 			};
 
 			qcom,pon_2 {
@@ -273,7 +277,7 @@
 		#size-cells = <1>;
 
 		pm8953_pwm: pwm@bc00 {
-			status = "disabled";
+			status = "okay";
 			compatible = "qcom,qpnp-pwm";
 			reg = <0xbc00 0x100>;
 			reg-names = "qpnp-lpg-channel-base";

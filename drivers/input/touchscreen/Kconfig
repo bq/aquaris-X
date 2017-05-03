@@ -1061,6 +1061,19 @@ config TOUCHSCREEN_FT5X06
          To compile this driver as a module, choose M here: the
          module will be called ft5x06_ts.
 
+config TOUCHSCREEN_ILI2120
+       tristate "FocalTech touchscreens"
+       depends on I2C
+       help
+         Say Y here if you have a ili2120 touchscreen.
+	 ili2120 controllers are multi touch controllers which can
+	 report 5 touches at a time.
+
+         If unsure, say N.
+
+         To compile this driver as a module, choose M here: the
+         module will be called ili2120.
+
 config FT_SECURE_TOUCH
 	bool "Secure Touch support for Focaltech Touchscreen"
 	depends on TOUCHSCREEN_FT5X06
@@ -1136,5 +1149,7 @@ config TOUCHSCREEN_MAXIM_STI
 	  module will be called maxim_sti.
 
 source "drivers/input/touchscreen/gt9xx/Kconfig"
+
+source “drivers/input/touchscreen/focaltech_touch/Kconfig”
 
 endif

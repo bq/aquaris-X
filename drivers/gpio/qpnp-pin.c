@@ -1005,7 +1005,7 @@ static int qpnp_pin_of_gpio_xlate(struct gpio_chip *gpio_chip,
 }
 
 static int qpnp_pin_apply_config(struct qpnp_pin_chip *q_chip,
-				  struct qpnp_pin_spec *q_spec)
+				  struct qpnp_pin_spec *q_spec, bool dut_before_dvt2)
 {
 	struct qpnp_pin_cfg param;
 	struct device_node *node = q_spec->node;
@@ -1081,26 +1081,44 @@ static int qpnp_pin_apply_config(struct qpnp_pin_chip *q_chip,
 				Q_REG_DTEST_SEL_MASK);
 	}
 
-	of_property_read_u32(node, "qcom,mode",
-		&param.mode);
+	printk("dut_before_dvt2 = %d,q_spec->offset = 0x%4x",dut_before_dvt2,q_spec->offset);
+
+	if((true == dut_before_dvt2) && (0xa300 == q_spec->offset)){
+		of_property_read_u32(node, "qcom,mode-lcd",
+			&param.mode);
+		of_property_read_u32(node, "qcom,invert-lcd",
+			&param.invert);
+		of_property_read_u32(node, "qcom,ain-route-lcd",
+			&param.ain_route);
+		of_property_read_u32(node, "qcom,master-en-lcd",
+			&param.master_en);
+		of_property_read_u32(node, "qcom,src-sel-lcd",
+			&param.src_sel);
+		of_property_read_u32(node, "qcom,vin-sel-lcd",
+			&param.vin_sel);
+	}else{
+		of_property_read_u32(node, "qcom,mode",
+			&param.mode);
+		of_property_read_u32(node, "qcom,invert",
+			&param.invert);
+		of_property_read_u32(node, "qcom,ain-route",
+			&param.ain_route);
+		of_property_read_u32(node, "qcom,master-en",
+			&param.master_en);
+		of_property_read_u32(node, "qcom,src-sel",
+			&param.src_sel);
+		of_property_read_u32(node, "qcom,vin-sel",
+			&param.vin_sel);
+	}
+
 	of_property_read_u32(node, "qcom,output-type",
 		&param.output_type);
-	of_property_read_u32(node, "qcom,invert",
-		&param.invert);
 	of_property_read_u32(node, "qcom,pull",
 		&param.pull);
-	of_property_read_u32(node, "qcom,vin-sel",
-		&param.vin_sel);
 	of_property_read_u32(node, "qcom,out-strength",
 		&param.out_strength);
-	of_property_read_u32(node, "qcom,src-sel",
-		&param.src_sel);
-	of_property_read_u32(node, "qcom,master-en",
-		&param.master_en);
 	of_property_read_u32(node, "qcom,aout-ref",
 		&param.aout_ref);
-	of_property_read_u32(node, "qcom,ain-route",
-		&param.ain_route);
 	of_property_read_u32(node, "qcom,cs-out",
 		&param.cs_out);
 	of_property_read_u32(node, "qcom,apass-sel",
@@ -1451,11 +1469,17 @@ static int qpnp_pin_probe(struct spmi_device *spmi)
 	struct qpnp_pin_spec *q_spec;
 	struct resource *res;
 	struct spmi_resource *d_node;
-	int i, rc;
+	int i, rc, gpio_127, gpio_128;
+	bool dut_before_dvt2 = false;
 	u32 lowest_gpio = UINT_MAX, highest_gpio = 0;
 	u32 gpio;
 	char version[Q_REG_SUBTYPE - Q_REG_DIG_MAJOR_REV + 1];
 	const char *dev_name;
+
+	gpio_127 = gpio_get_value(127);
+	gpio_128 = gpio_get_value(128);
+	if((0 == gpio_127)&&( 1 == gpio_128))
+		dut_before_dvt2 = true;
 
 	dev_name = spmi_get_primary_dev_name(spmi);
 	if (!dev_name) {
@@ -1626,7 +1650,7 @@ static int qpnp_pin_probe(struct spmi_device *spmi)
 		if (rc)
 			goto err_probe;
 
-		rc = qpnp_pin_apply_config(q_chip, q_spec);
+		rc = qpnp_pin_apply_config(q_chip, q_spec, dut_before_dvt2);
 		if (rc)
 			goto err_probe;
 	}

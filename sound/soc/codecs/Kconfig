@@ -872,4 +872,12 @@ config SND_SOC_MSM_HDMI_CODEC_RX
 config SND_SOC_MSM_HDMI_DBA_CODEC_RX
 	bool "HDMI DBA Audio Playback"
 	depends on MSM_DBA
+
+config SND_SOC_TFA9896
+	tristate "Support TFA9896"
+	depends on I2C
+	help
+	TFA9896 driver
+config SND_SOC_ESS9118	
+	tristate
 endmenu
