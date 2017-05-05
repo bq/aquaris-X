@@ -186,6 +186,8 @@ void msm_vfe47_config_irq(struct vfe_device *vfe_dev,
 				vfe_dev->vfe_base + 0x5C);
 	msm_camera_io_w_mb(vfe_dev->irq1_mask,
 				vfe_dev->vfe_base + 0x60);
+
+	trace_printk("%s: Mask set VFE%d  irq0_mask %x,irq1_mask %x \n", __func__, vfe_dev->pdev->id, vfe_dev->irq0_mask,vfe_dev->irq1_mask);
 }
 
 static int32_t msm_vfe47_init_dt_parms(struct vfe_device *vfe_dev,
@@ -436,6 +438,7 @@ void msm_vfe47_process_halt_irq(struct vfe_device *vfe_dev,
 
 	if (irq_status1 & (1 << 8)) {
 		complete(&vfe_dev->halt_complete);
+		trace_printk("%s: VFE%d received halt_irq\n", __func__, vfe_dev->pdev->id);
 		msm_camera_io_w(0x0, vfe_dev->vfe_base + 0x400);
 	}
 
@@ -757,9 +760,11 @@ long msm_vfe47_reset_hardware(struct vfe_device *vfe_dev,
 			pr_err("%s:%d failed: reset timeout\n", __func__,
 				__LINE__);
 			vfe_dev->reset_pending = 0;
+
 		}
 	}
 
+	trace_printk("%s: msm_vfe47_axi_reset VFE%d\n", __func__,vfe_dev->pdev->id);
 	return rc;
 }
 
@@ -1842,7 +1847,7 @@ int msm_vfe47_axi_halt(struct vfe_device *vfe_dev,
 
 	if (atomic_read(&vfe_dev->error_info.overflow_state)
 		== OVERFLOW_DETECTED)
-		pr_err_ratelimited("%s: VFE%d halt for recovery, blocking %d\n",
+		trace_printk("%s: VFE%d halt for recovery, blocking %d\n",
 			__func__, vfe_dev->pdev->id, blocking);
 
 	if (blocking) {
@@ -1852,7 +1857,7 @@ int msm_vfe47_axi_halt(struct vfe_device *vfe_dev,
 		rc = wait_for_completion_timeout(
 			&vfe_dev->halt_complete, msecs_to_jiffies(500));
 		if (rc <= 0)
-			pr_err("%s:VFE%d halt timeout rc=%d\n", __func__,
+			trace_printk("%s:VFE%d halt timeout rc=%d\n", __func__,
 				vfe_dev->pdev->id, rc);
 
 	} else {
@@ -1911,6 +1916,7 @@ int msm_vfe47_axi_restart(struct vfe_device *vfe_dev,
 		update_camif_state(vfe_dev, ENABLE_CAMIF);
 	}
 
+	trace_printk("%s: msm_vfe47_axi_restart VFE%d \n", __func__,vfe_dev->pdev->id);
 	return 0;
 }
 
