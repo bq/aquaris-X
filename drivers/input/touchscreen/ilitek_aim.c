@@ -251,8 +251,8 @@ static int ilitek_request_init_reset(void)
 static int Request_IRQ(void)
 {
 	int ret = 0;
-	ret = request_irq(i2c.client->irq, ilitek_i2c_isr, /*IRQF_TRIGGER_FALLING*/IRQF_TRIGGER_LOW | IRQF_ONESHOT, "ilitek_i2c_irq", &i2c);
-	//ret = request_threaded_irq(i2c.client->irq, NULL,ilitek_i2c_isr, IRQF_TRIGGER_LOW | IRQF_ONESHOT,"ilitek_i2c_irq", &i2c);
+	//ret = request_irq(i2c.client->irq, ilitek_i2c_isr, /*IRQF_TRIGGER_FALLING*/IRQF_TRIGGER_LOW | IRQF_ONESHOT, "ilitek_i2c_irq", &i2c);
+	ret = request_threaded_irq(i2c.client->irq, NULL,ilitek_i2c_isr, IRQF_TRIGGER_LOW | IRQF_ONESHOT,"ilitek_i2c_irq", &i2c);
 	return ret;
 }
 
@@ -736,7 +736,7 @@ static int ilitek_i2c_update_thread(void *arg)
 		return -1;
 	}
 	
-	disable_irq(i2c.client->irq);
+	//disable_irq(i2c.client->irq);
 
 	update_wait_flag = 1;
 	i2c.firmware_updating = true;
@@ -755,7 +755,7 @@ static int ilitek_i2c_update_thread(void *arg)
 		return ret;
 	}
 	
-	enable_irq(i2c.client->irq);
+	//enable_irq(i2c.client->irq);
 	update_wait_flag = 0;
 	ilitek_set_input_param(i2c.input_dev, i2c.max_tp, i2c.max_x, i2c.max_y);
 	ret = input_register_device(i2c.input_dev);
@@ -763,6 +763,19 @@ static int ilitek_i2c_update_thread(void *arg)
 		tp_log_info("%s, register input device, error\n", __func__);
 		return ret;
 	}
+	tp_log_info("%s, IRQ: 0x%X\n", __func__, (i2c.client->irq));
+	//gpio_direction_output(i2c.irq_gpio, 1);
+	if(i2c.client->irq != 0 ){ 
+		if(Request_IRQ()){
+			tp_log_err("%s, request irq, error\n", __func__);
+			//goto err_register_device;
+		}else{
+			i2c.valid_irq_request = 1;
+			i2c.irq_status = 1;
+			tp_log_err("%s, request irq, success\n", __func__);
+		}
+	}
+	//gpio_direction_input(i2c.irq_gpio);
 	tp_log_info("%s, register input device, success\n", __func__);
 	return ret;
 }
@@ -1530,19 +1543,6 @@ static int ilitek_i2c_probe(struct i2c_client *client,
 		i2c.early_suspend.resume = ilitek_i2c_late_resume;
 		register_early_suspend(&i2c.early_suspend);
 #endif
-		tp_log_info("%s, IRQ: 0x%X\n", __func__, (i2c.client->irq));
-		//gpio_direction_output(i2c.irq_gpio, 1);
-		if(i2c.client->irq != 0 ){ 
-			if(Request_IRQ()){
-				tp_log_err("%s, request irq, error\n", __func__);
-				goto err_register_device;
-			}else{
-				i2c.valid_irq_request = 1;
-				i2c.irq_status = 1;
-				tp_log_err("%s, request irq, success\n", __func__);
-			}
-		}
-		//gpio_direction_input(i2c.irq_gpio);
 	i2c.thread = kthread_run(ilitek_i2c_touchevent_thread, NULL, "ilitek_i2c_thread");
 	if(i2c.thread == (struct task_struct*)ERR_PTR){
 		i2c.thread = NULL;
@@ -1581,6 +1581,20 @@ static int ilitek_i2c_probe(struct i2c_client *client,
 		tp_log_info("%s, register input device, error\n", __func__);
 		return retval;
 	}
+	
+	tp_log_info("%s, IRQ: 0x%X\n", __func__, (i2c.client->irq));
+	//gpio_direction_output(i2c.irq_gpio, 1);
+	if(i2c.client->irq != 0 ){ 
+		if(Request_IRQ()){
+			tp_log_err("%s, request irq, error\n", __func__);
+			goto err_register_device;
+		}else{
+			i2c.valid_irq_request = 1;
+			i2c.irq_status = 1;
+			tp_log_err("%s, request irq, success\n", __func__);
+		}
+	}
+	//gpio_direction_input(i2c.irq_gpio);
 #endif
 #ifdef DEBUG_NETLINK
 		//netlink_sock = netlink_kernel_create(&init_net, 21, 0,udp_receive, NULL, THIS_MODULE);
@@ -1588,13 +1602,13 @@ static int ilitek_i2c_probe(struct i2c_client *client,
 			
 #endif
 	return retval;
-err_run_thread:
-	free_irq(i2c.irq,&i2c);
 err_register_device:
 	if (NULL != i2c.input_dev){
 		input_unregister_device(i2c.input_dev);
 		i2c.input_dev = NULL;
 	}
+err_run_thread:
+	free_irq(i2c.irq,&i2c);
 err_read_tp_info:
 	if(i2c.reset_gpio){
 		gpio_free(i2c.reset_gpio);
