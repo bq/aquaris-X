@@ -204,7 +204,7 @@ static int32_t msm_isp_stats_buf_divert(struct vfe_device *vfe_dev,
 		//if (rc == -EFAULT)
 			//msm_isp_halt_send_error(vfe_dev,
 			//		ISP_EVENT_PING_PONG_MISMATCH);
-		trace_printk("stats_buf_divert: update put buf cnt fail\n");
+		pr_err("stats_buf_divert: update put buf cnt fail\n");
 		return rc;
 	}
 

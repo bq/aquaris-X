@@ -34,12 +34,13 @@
 #define VFE40_STATS_BURST_LEN_8916_VERSION 2
 #define VFE40_FETCH_BURST_LEN 3
 #define VFE40_UB_SIZE 1536 /* 1536 * 128 bits = 24KB */
+#define VFE40_STATS_SIZE 392
 #define VFE40_UB_SIZE_8952 2048 /* 2048 * 128 bits = 32KB */
 #define VFE40_UB_SIZE_8916 3072 /* 3072 * 128 bits = 48KB */
 #define VFE40_EQUAL_SLICE_UB 190 /* (UB_SIZE - STATS SIZE)/6 */
 #define VFE40_EQUAL_SLICE_UB_8916 236
 #define VFE40_TOTAL_WM_UB 1144 /* UB_SIZE - STATS SIZE */
-#define VFE40_TOTAL_WM_UB_8916 1656
+#define VFE40_TOTAL_WM_UB_8916 2680
 #define VFE40_WM_BASE(idx) (0x6C + 0x24 * idx)
 #define VFE40_RDI_BASE(idx) (0x2E8 + 0x4 * idx)
 #define VFE40_XBAR_BASE(idx) (0x58 + 0x4 * (idx / 2))
@@ -103,7 +104,11 @@ static uint32_t msm_vfe40_ub_reg_offset(struct vfe_device *vfe_dev, int idx)
 
 static uint32_t msm_vfe40_get_ub_size(struct vfe_device *vfe_dev)
 {
-	if (vfe_dev->vfe_hw_version == VFE40_8916_VERSION) {
+    if (vfe_dev->vfe_hw_version == VFE40_8916_VERSION ||
+		vfe_dev->vfe_hw_version == VFE40_8939_VERSION ||
+		vfe_dev->vfe_hw_version == VFE40_8937_VERSION ||
+        vfe_dev->vfe_hw_version == VFE40_8953_VERSION ||
+		vfe_dev->vfe_hw_version == VFE40_8917_VERSION) {
 		vfe_dev->ub_info->wm_ub = VFE40_TOTAL_WM_UB_8916;
 		return VFE40_TOTAL_WM_UB_8916;
 	}
@@ -374,7 +379,6 @@ static void msm_vfe40_process_halt_irq(struct vfe_device *vfe_dev,
 {
 	if (irq_status1 & (1 << 8)) {
 		complete(&vfe_dev->halt_complete);
-        trace_printk("%s: VFE%d received hal_irq\n", __func__, vfe_dev->pdev->id);
 		msm_camera_io_w(0x0, vfe_dev->vfe_base + 0x2C0);
 	}
 }
@@ -387,7 +391,6 @@ static void msm_vfe40_process_input_irq(struct vfe_device *vfe_dev,
 		return;
 
 	if (irq_status0 & (1 << 0)) {
-		trace_printk("vfe %d SOF PIX IRQ\n",vfe_dev->pdev->id);
 		msm_isp_increment_frame_id(vfe_dev, VFE_PIX_0, ts);
 	}
 
@@ -671,7 +674,6 @@ static void msm_vfe40_process_reg_update(struct vfe_device *vfe_dev,
 	spin_lock_irqsave(&vfe_dev->reg_update_lock, flags);
 	if (reg_updated & BIT(VFE_PIX_0)) {
         vfe_dev->reg_updated = 1;
-        trace_printk("reg_updated %d \n",vfe_dev->reg_updated);
     }
 
 	vfe_dev->reg_update_requested &= ~reg_updated;
@@ -698,7 +700,6 @@ static void msm_vfe40_reg_update(struct vfe_device *vfe_dev,
 		update_mask = 0xF;
 	else
 		update_mask = BIT((uint32_t)frame_src);
-	trace_printk("%s update_mask %x\n", __func__, update_mask);
 
 	spin_lock_irqsave(&vfe_dev->reg_update_lock, flags);
 	vfe_dev->axi_data.src_info[VFE_PIX_0].reg_update_frame_id =
@@ -1736,11 +1737,6 @@ static int msm_vfe40_axi_halt(struct vfe_device *vfe_dev,
 			msm_isp_stats_stream_update(vfe_dev);
 	}
 
-    if (atomic_read(&vfe_dev->error_info.overflow_state)
-		== OVERFLOW_DETECTED)
-		trace_printk("%s: VFE%d halt for recovery, blocking %d\n",
-			__func__, vfe_dev->pdev->id, blocking);
-
 	if (blocking) {
 		init_completion(&vfe_dev->halt_complete);
 		/* Halt AXI Bus Bridge */
@@ -1748,7 +1744,7 @@ static int msm_vfe40_axi_halt(struct vfe_device *vfe_dev,
 		rc = wait_for_completion_interruptible_timeout(
 			&vfe_dev->halt_complete, msecs_to_jiffies(5000));
 		if (rc <= 0)
-			trace_printk("%s:VFE%d halt timeout rc=%d\n", __func__,
+			pr_err("%s:VFE%d halt timeout rc=%d\n", __func__,
 				vfe_dev->pdev->id, rc);
 	} else {
 		/* Halt AXI Bus Bridge */

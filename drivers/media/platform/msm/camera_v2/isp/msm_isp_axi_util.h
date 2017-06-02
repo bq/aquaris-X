@@ -117,8 +117,6 @@ static inline void msm_isp_cfg_stream_scratch(struct vfe_device *vfe_dev,
 	for (i = 0; i < stream_info->num_planes; i++)
 		msm_isp_cfg_wm_scratch(vfe_dev, stream_info->wm[i],
 				~pingpong_bit & 0x1);
-	trace_printk("Vfe%d Configuring scratch stream id 0x%X, pingpong_bit%d\n", vfe_dev->pdev->id,
-		stream_info->stream_id,pingpong_bit);
 	stream_info->buf[pingpong_bit] = NULL;
 }
 

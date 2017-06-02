@@ -48,7 +48,7 @@
 #define CSI_3PHASE_HW                               1
 #define MAX_LANES                                   4
 #define CLOCK_OFFSET                              0x700
-#define CSIPHY_SOF_DEBUG_COUNT                      5
+#define CSIPHY_SOF_DEBUG_COUNT                      0
 
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)

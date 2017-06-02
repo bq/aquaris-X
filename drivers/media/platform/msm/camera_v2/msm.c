@@ -755,8 +755,6 @@ static long msm_private_ioctl(struct file *file, void *fh,
 		if (event_data->status) {
 			pr_err("%s:Notifying subdevs about potential sof freeze\n",
 				__func__);
-            trace_printk("%s:Notifying subdevs about potential sof freeze\n",
-				__func__);
 		} else {
 			pr_err("%s:Notifying subdevs about sof recover\n",
 				__func__);
