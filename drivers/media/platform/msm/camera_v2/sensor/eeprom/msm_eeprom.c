@@ -1717,7 +1717,7 @@ static camera_vendor_module_id s5k4h8_oflim_get_otp_vendor_module_id(struct msm_
 {	
 	uint8_t MID_FLAG_OFFSET = 0x00;
 	uint8_t MODULE_INFO_OFFSET_GROUP1 = 0x04;
-	uint8_t MODULE_INFO_OFFSET_GROUP2 = 0x24;
+	uint8_t MODULE_INFO_OFFSET_GROUP2 = 24;
 	uint8_t mid=0;
 	uint8_t flag=0;
 	uint8_t *buffer = e_ctrl->cal_data.mapdata;

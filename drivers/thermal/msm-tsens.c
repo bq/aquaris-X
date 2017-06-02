@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2017, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -981,6 +981,7 @@ static int32_t get_tsens_sensor_for_client_id(struct tsens_tm_device *tmdev,
 	}
 
 	if (!strcmp(id->compatible, "qcom,msm8996-tsens") ||
+		(!strcmp(id->compatible, "qcom,msm8953-tsens")) ||
 		(!strcmp(id->compatible, "qcom,msmcobalt-tsens"))) {
 		while (i < tmdev->tsens_num_sensor && !id_found) {
 			if (tmdev->sensor[i].sensor_client_id ==
@@ -1140,6 +1141,7 @@ int tsens_get_hw_id_mapping(int sensor_sw_id, int *sensor_client_id)
 	}
 
 	if (!strcmp(id->compatible, "qcom,msm8996-tsens") ||
+		(!strcmp(id->compatible, "qcom,msm8953-tsens")) ||
 		(!strcmp(id->compatible, "qcom,msmcobalt-tsens"))) {
 		/* Assign a client id which will be used to get the
 		 * controller and hw_sensor details
@@ -5866,6 +5868,7 @@ static int tsens_thermal_zone_register(struct tsens_tm_device *tmdev)
 	for (i = 0; i < tmdev->tsens_num_sensor; i++) {
 		char name[18];
 		if ((!strcmp(id->compatible, "qcom,mdm9640-tsens")) ||
+			(!strcmp(id->compatible, "qcom,msm8953-tsens")) ||
 			(!strcmp(id->compatible, "qcom,mdm9640v2-tsens")))
 			snprintf(name, sizeof(name), "tsens_tz_sensor%d",
 					tmdev->sensor[i].sensor_hw_num);

@@ -60,6 +60,7 @@
 //#define CHIPS_IOC_SENSOR_CONFIG              _IOW(CHIPS_IOC_MAGIC,13,void*)
 #define CHIPS_IOC_DEV_INIT                   _IO(CHIPS_IOC_MAGIC,14)
 #define CHIPS_IOC_DEV_UNINST                 _IO(CHIPS_IOC_MAGIC,15)
+#define CHIPS_IOC_DEV_UNINIT                 _IO(CHIPS_IOC_MAGIC,16)
 
 
 #define CHIPS_INPUT_KEY_FINGERDOWN        KEY_F18
@@ -86,6 +87,7 @@ static DEFINE_MUTEX(device_list_lock);
 
 static int chips_dev_init(void);
 static int chips_dev_uninst(void);
+static int chips_dev_uninit(void);
 
 
 /*******************************************
@@ -457,6 +459,11 @@ static long chips_ioctl(struct file *fp, unsigned int cmd, unsigned long arg)
 			chips_dbg("dev init\n");
 			break;
 			
+		case CHIPS_IOC_DEV_UNINIT:
+			chips_dev_uninit();
+			chips_dbg("dev uninit\n");
+			break;
+			
 		case CHIPS_IOC_DEV_UNINST:
 		    chips_dev_uninst();
 			chips_dbg("dev uninst\n");
@@ -616,7 +623,7 @@ static int chips_dev_inst(void)
 	chips_set_drvdata(chips_dev);
 	
 	INIT_LIST_HEAD(&chips_dev->device_entry);
-	spin_lock_init(&chips_dev->spin_lock);
+	//spin_lock_init(&chips_dev->spin_lock);
 	mutex_init(&chips_dev->buf_lock);
 
 
@@ -701,7 +708,7 @@ static int chips_dev_uninst(void)
 	
 	/*Unregister mutex*/
 	mutex_destroy(&chips_dev->buf_lock);
-	mutex_destroy(&device_list_lock);
+	//mutex_destroy(&device_list_lock);
 	
 	if(chips_dev != NULL){
 		kfree(chips_dev);
@@ -763,6 +770,18 @@ static int chips_dev_uninit(void)
 	//chips_dev->spi = NULL;
 	//spi_set_drvdata(spi, NULL);
 	//spin_unlock_irq(&chips_dev->spin_lock);
+
+#if defined(FB_EVENT_NOTIFIER)
+	fb_unregister_client(&stk3x1x_fb_notifier);
+#endif
+
+	/*Unregister input device*/
+	if (chips_dev->input != NULL){
+		input_unregister_device(chips_dev->input);
+		//Once device has been successfully registered it can be unregistered with 
+		//input_unregister_device(); input_free_device() should not be called in this case.
+		//input_free_device(chips_dev->input);
+	}
 	
 	/*Release interrupt number*/
 	if (chips_dev->irq !=0)
@@ -770,14 +789,7 @@ static int chips_dev_uninit(void)
 
 	/*Unregister wake lock*/
 	wake_lock_destroy(&g_wakelock);
-	
-	/*Unregister input device*/
-	if (chips_dev->input != NULL){
-		input_unregister_device(chips_dev->input);
-		//Once device has been successfully registered it can be unregistered with 
-		//input_unregister_device(); input_free_device() should not be called in this case.
-		//input_free_device(chips_dev->input);
-	}	
+		
 	return 0;
 }
 
@@ -790,7 +802,7 @@ static int __init chips_init(void)
 		chips_dbg("Failed to install device\n");
 	}
 	
-	chips_dbg("Failed to install device\n");
+	chips_dbg("install device\n");
 	return status;
 }
 
