@@ -58,6 +58,7 @@ pr_err("hall_interrupt begin begin begin begin *********.\n");
 	hall_gpio = gpio_get_value(hall_info->irq_gpio);
 pr_err("hall_interrupt hall_gpio=%d,hall_switch_state=%d .\n",hall_gpio,hall_info->hall_switch_state);
 	if(hall_gpio == hall_info->hall_switch_state){
+		enable_irq(irq);          
 		return IRQ_HANDLED;
 	}else{
 		hall_info->hall_switch_state = hall_gpio;
