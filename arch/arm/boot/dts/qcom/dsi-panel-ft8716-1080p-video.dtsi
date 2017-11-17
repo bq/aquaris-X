@@ -106,8 +106,7 @@
 		qcom,mdss-dsi-pwm-gpio = <&pm8953_mpps 4 0>;
 		qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
 		qcom,mdss-dsi-reset-sequence = <1 5>, <0 10>, <1 10>;
-		qcom,mdss-pan-physical-width-dimension = <68>;
-		qcom,mdss-pan-physical-height-dimension = <121>;
-
+		qcom,mdss-pan-physical-width-dimension = <65>;
+		qcom,mdss-pan-physical-height-dimension = <115>;
 	};
 };

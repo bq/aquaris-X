@@ -21,7 +21,7 @@
 		qcom,mdss-dsi-panel-name = "otm1906b 1080p cmd mode dsi panel";
 		qcom,mdss-dsi-panel-id = <1>;
 		qcom,mdss-dsi-panel-type = "dsi_cmd_mode";
-		qcom,mdss-dsi-panel-framerate = <63>;
+		qcom,mdss-dsi-panel-framerate = <62>;
 		qcom,mdss-dsi-virtual-channel-id = <0>;
 		qcom,mdss-dsi-stream = <0>;
 		qcom,mdss-dsi-panel-width = <1080>;
@@ -244,6 +244,7 @@
 				29 01 00 00 00 00 02 00 00                                     
 				29 01 00 00 00 00 04 FF 00 00 00  
 				29 01 00 00 00 00 02 35 00  
+				29 01 00 00 00 00 03 44 03 c0 
 				05 01 00 00 78 00 01 11
 				05 01 00 00 14 00 01 29
 				//29 01 00 00 00 00 02 51 ff  
@@ -280,9 +281,9 @@
 		qcom,mdss-dsi-panel-status-value = <0x9c 0x00>;
 		//esd end
 
-		qcom,mdss-dsi-panel-timings = [8E 32 22 00 62 66 26 36 28 03 04];
-		qcom,mdss-dsi-t-clk-post = <0x0d>;
-		qcom,mdss-dsi-t-clk-pre = <0x2d>;
+		qcom,mdss-dsi-panel-timings = [DB 34 22 00 64 66 28 38 2B 03 04];
+		qcom,mdss-dsi-t-clk-post = <0x03>;
+		qcom,mdss-dsi-t-clk-pre = <0x29>;
 		qcom,mdss-dsi-bl-pmic-control-type-dcs = "bl_ctrl_dcs";
 		qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_pwm";
 		qcom,mdss-dsi-bl-pmic-pwm-frequency = <100>;
@@ -294,7 +295,7 @@
 		qcom,mdss-dsi-bl-min-level = <2>;
 		qcom,mdss-dsi-bl-max-level = <255>;
 		qcom,mdss-dsi-reset-sequence = <1 20>, <0 10>, <1 80>;
-		qcom,mdss-pan-physical-width-dimension = <68>;
-		qcom,mdss-pan-physical-height-dimension = <121>;
+		qcom,mdss-pan-physical-width-dimension = <65>;
+		qcom,mdss-pan-physical-height-dimension = <115>;
 	};
 };

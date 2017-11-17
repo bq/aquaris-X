@@ -117,7 +117,7 @@
 	qcom,chg-led-support;
 	qcom,external-typec;
 	qcom,typec-psy-name = "typec";
-	qcom,thermal-mitigation = <3000 2500 1950 1400 900 700>;
+	qcom,thermal-mitigation = <3000 2500 1950 1400 900 700 0>;
 	qcom,fastchg-current-ma = <2300>;
 	qcom,charging-timeout-mins = <768>;
 	qcom,fastchg-current-comp = <1200>;
