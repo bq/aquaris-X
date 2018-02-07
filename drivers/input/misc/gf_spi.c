@@ -71,14 +71,14 @@ struct gf_key_map key_map[] =
       {  "HOME" ,  KEY_HOME   },
       {  "MENU" ,  KEY_MENU   },
       {  "BACK" ,  KEY_BACK   },
-      {  "UP"   ,  KEY_UP     },
-      {  "DOWN" ,  KEY_DOWN   },
-      {  "LEFT" ,  KEY_LEFT   },
-      {  "RIGHT",  KEY_RIGHT  },
+      {  "UP"   ,  KEY_F18    },
+      {  "DOWN" ,  KEY_F18    },
+      {  "LEFT" ,  KEY_F18    },
+      {  "RIGHT",  KEY_F18    },
       {  "FORCE",  KEY_F9     },
       {  "CLICK",  KEY_F19    },
-      {  "DOUBLE",  KEY_F20    },
-      {  "LONG",  KEY_F21    },
+      {  "DOUBLE",  KEY_F20   },
+      {  "LONG",  KEY_F21     },
 };
 
 
