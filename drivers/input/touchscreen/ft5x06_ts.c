@@ -35,6 +35,8 @@
 #include <linux/uaccess.h>
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
+#include "lct_tp_fm_info.h"
+#include "lct_ctp_upgrade.h"
 
 
 #if defined(CONFIG_FB)
@@ -53,6 +55,13 @@
 #include <linux/clk.h>
 #include <linux/pm_runtime.h>
 static irqreturn_t ft5x06_ts_interrupt(int irq, void *data);
+#endif
+
+#define FT_PROC_DEBUG
+#if defined(FT_PROC_DEBUG)
+#include <linux/proc_fs.h>
+#define FTS_FACTORYMODE_VALUE		0x40
+#define FTS_WORKMODE_VALUE		0x00
 #endif
 
 #define FT_DRIVER_VERSION	0x02
@@ -533,6 +542,8 @@ static inline bool ft5x06_gesture_support_enabled(void)
 	return config_enabled(CONFIG_TOUCHSCREEN_FT5X06_GESTURE);
 }
 
+struct ft5x06_ts_data *ft5x06_ts = NULL;
+
 static int ft5x06_i2c_read(struct i2c_client *client, char *writebuf,
 			   int writelen, char *readbuf, int readlen)
 {
@@ -909,10 +920,23 @@ static irqreturn_t ft5x06_ts_interrupt(int irq, void *dev_id)
 
 		input_mt_slot(ip_dev, id);
 		if (status == FT_TOUCH_DOWN || status == FT_TOUCH_CONTACT) {
-			input_mt_report_slot_state(ip_dev, MT_TOOL_FINGER, 1);
-			input_report_abs(ip_dev, ABS_MT_POSITION_X, x);
-			input_report_abs(ip_dev, ABS_MT_POSITION_Y, y);
+			//pr_info("lxj--down: x= %d, y =%d\n",x,y);
+			if (y > 1920){
+				if(x==200 || x==180)
+					input_report_key(ip_dev, KEY_BACK, 1);
+				if(x==600 || x==360)
+					input_report_key(ip_dev, KEY_HOMEPAGE, 1);
+				if(x==800 || x==540)
+					input_report_key(ip_dev, KEY_MENU, 1);
+			}else{
+					input_mt_report_slot_state(ip_dev, MT_TOOL_FINGER, 1);
+					input_report_abs(ip_dev, ABS_MT_POSITION_X, x);
+					input_report_abs(ip_dev, ABS_MT_POSITION_Y, y);
+				}
 		} else {
+			input_report_key(ip_dev, KEY_BACK, 0);
+			input_report_key(ip_dev, KEY_HOMEPAGE, 0);
+			input_report_key(ip_dev, KEY_MENU, 0);
 			input_mt_report_slot_state(ip_dev, MT_TOOL_FINGER, 0);
 		}
 	}
@@ -1777,19 +1801,6 @@ static int ft5x06_fw_upgrade(struct device *dev, bool force)
 	}
 
 	/* start firmware upgrade */
-	if (FT_FW_CHECK(fw, data)) {
-		rc = ft5x06_fw_upgrade_start(data->client, fw->data, fw->size);
-		if (rc < 0)
-			dev_err(dev, "update failed (%d). try later...\n", rc);
-		else if (data->pdata->info.auto_cal)
-			ft5x06_auto_cal(data->client);
-	} else {
-		dev_err(dev, "FW format error\n");
-		rc = -EIO;
-	}
-
-	ft5x06_update_fw_ver(data);
-
 	FT_STORE_TS_DBG_INFO(data->ts_info, data->family_id, data->pdata->name,
 			data->pdata->num_max_touches, data->pdata->group_id,
 			data->pdata->fw_vkey_support ? "yes" : "no",
@@ -2247,6 +2258,189 @@ static int ft5x06_parse_dt(struct device *dev,
 }
 #endif
 
+static struct i2c_client *fts_proc_entry_i2c_client = NULL;
+#if defined(FT_PROC_DEBUG)
+#define FTS_PACKET_LENGTH        		128
+#define PROC_UPGRADE              		0
+#define PROC_READ_REGISTER          	1
+#define PROC_WRITE_REGISTER        	2
+#define PROC_AUTOCLB                		4
+#define PROC_UPGRADE_INFO           	5
+#define PROC_WRITE_DATA               	6
+#define PROC_READ_DATA                 	7
+
+#define PROC_NAME    "ft5x0x-debug"
+static unsigned char proc_operate_mode = PROC_UPGRADE;
+static struct proc_dir_entry *ft5x0x_proc_entry = NULL;
+
+
+/*interface of write proc*/
+static ssize_t ft5x0x_debug_write(struct file *filp, const char __user *buffer, size_t count, loff_t *off)
+{
+      struct i2c_client *client = fts_proc_entry_i2c_client;
+      unsigned char writebuf[FTS_PACKET_LENGTH];
+      int buflen = count;
+      int writelen = 0;
+      int ret = 0;
+
+      if (copy_from_user(writebuf, (void __user *)buffer, buflen)) {
+           dev_err(&client->dev, "%s:copy from user error\n", __func__);
+           return -EFAULT;
+      }
+
+	proc_operate_mode = writebuf[0];
+	printk("proc_operate_mode = %d\n",proc_operate_mode);
+      switch (proc_operate_mode) {
+      case PROC_READ_REGISTER:
+	   printk("%s,%d:PROC_READ_REGISTER\n",__func__,__LINE__);
+           writelen = 1;
+           ret = ft5x06_i2c_write(client, writebuf + 1, writelen);
+           if (ret < 0) {
+                 dev_err(&client->dev, "%s:write iic error\n", __func__);
+                 return ret;
+           }
+           break;
+      case PROC_WRITE_REGISTER:
+	   printk("%s,%d:PROC_WRITE_REGISTER\n",__func__,__LINE__);
+           writelen = 2;
+           ret = ft5x06_i2c_write(client, writebuf + 1, writelen);
+           if (ret < 0) {
+                 dev_err(&client->dev, "%s:write iic error\n", __func__);
+                 return ret;
+           }
+           break;
+      case PROC_AUTOCLB:
+	   printk("%s,%d:PROC_AUTOCLB\n",__func__,__LINE__);
+           printk("%s: autoclb\n", __func__);
+           ft5x06_auto_cal(client);
+           break;
+      case PROC_READ_DATA:
+      case PROC_WRITE_DATA:
+	   printk("%s,%d:PROC_READ_DATA,PROC_WRITE_DATA\n",__func__,__LINE__);
+           writelen = count - 1;
+           ret = ft5x06_i2c_write(client, writebuf + 1, writelen);
+           if (ret < 0) {
+                 dev_err(&client->dev, "%s:write iic error\n", __func__);
+                 return ret;
+           }
+           break;
+      default:
+	   printk("%s,%d:default\n",__func__,__LINE__);
+           break;
+      }
+
+      return count;
+}
+
+/*interface of read proc*/
+static ssize_t ft5x0x_debug_read(struct file *file, char __user *page, size_t size, loff_t *ppos)
+{
+      struct i2c_client *client = fts_proc_entry_i2c_client;
+      int ret = 0;
+      unsigned char buf[1000];	//PAGE_SIZE
+      int num_read_chars = 0;
+      int readlen = 0;
+      u8 regvalue = 0x00, regaddr = 0x00;
+
+      switch (proc_operate_mode) {
+      case PROC_UPGRADE:
+           /*after calling ft5x0x_debug_write to upgrade*/
+	   printk("%s,%d:PROC_UPGRADE\n",__func__,__LINE__);
+           regaddr = 0xA6;
+           ret = ft5x0x_read_reg(client, regaddr, &regvalue);
+           if (ret < 0)
+                 num_read_chars = sprintf(buf, "%s", "get fw version failed.\n");
+           else
+                 num_read_chars = sprintf(buf, "current fw version:0x%02x\n", regvalue);
+           break;
+      case PROC_READ_REGISTER:
+           readlen = 1;
+           ret = ft5x06_i2c_read(client, NULL, 0, buf, readlen);
+           if (ret < 0) {
+                 dev_err(&client->dev, "%s:read iic error\n", __func__);
+                 return ret;
+           }
+		   printk("%s,%d:PROC_READ_REGISTER, buf = %c\n",__func__,__LINE__,*buf);
+           num_read_chars = 1;
+           break;
+      case PROC_READ_DATA:
+	   printk("%s,%d:PROC_READ_DATA\n",__func__,__LINE__);
+           readlen = size;
+           ret = ft5x06_i2c_read(client, NULL, 0, buf, readlen);
+           if (ret < 0) {
+                 dev_err(&client->dev, "%s:read iic error\n", __func__);
+                 return ret;
+           }
+
+           num_read_chars = readlen;
+           break;
+      case PROC_WRITE_DATA:
+	   printk("%s,%d:PROC_WRITE_DATA\n",__func__,__LINE__);
+           break;
+      default:
+	   printk("%s,%d:default\n",__func__,__LINE__);
+           break;
+      }
+
+      memcpy(page, buf, num_read_chars);
+
+      return num_read_chars;
+}
+
+static const struct file_operations ft5x0x_debug_ops = {
+	  .owner =	THIS_MODULE,
+    .read = ft5x0x_debug_read,
+    .write = ft5x0x_debug_write,
+};
+
+static int ft5x0x_create_apk_debug_channel(struct i2c_client * client)
+{
+      ft5x0x_proc_entry = proc_create(PROC_NAME, 0777, NULL,&ft5x0x_debug_ops);
+
+      if (NULL == ft5x0x_proc_entry) {
+           dev_err(&client->dev, "Couldn't create proc entry!\n");
+           return -ENOMEM;
+      } else {
+           dev_info(&client->dev, "Create proc entry success!\n");
+//           ft5x0x_proc_entry->data = client;
+  //         ft5x0x_proc_entry->write_proc = ft5x0x_debug_write;
+ //          ft5x0x_proc_entry->read_proc = ft5x0x_debug_read;
+      }
+      return 0;
+}
+
+static void ft5x0x_release_apk_debug_channel(void)
+{
+      if (ft5x0x_proc_entry)
+      	{
+      		
+	   printk("%s ft5x0x_release_apk_debug_channel jinlin\n", __func__);
+      		
+           remove_proc_entry(PROC_NAME, NULL);
+         }
+}
+#endif
+
+
+//static unsigned char tp_fw[FT_FW_MAX_SIZE];
+/*
+static void ft5x06_ctp_upgrade_read_ver_func(char *ver)
+{
+	int cnt= 0;
+
+	if(ver == NULL)
+	{
+		return;
+	}
+
+	ft5x06_update_fw_ver(ft5x06_ts);
+	ft5x06_update_fw_vendor_id(ft5x06_ts);
+
+	cnt = sprintf(ver, "vid:0x%03x,fw:0x%03x,ic:%s\n",
+		ft5x06_ts->fw_vendor_id, ft5x06_ts->fw_ver[0], "ft5x06");
+	return ;
+}
+*/
 static int ft5x06_ts_probe(struct i2c_client *client,
 			   const struct i2c_device_id *id)
 {
@@ -2258,6 +2452,12 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 	u8 reg_value = 0;
 	u8 reg_addr;
 	int err, len, retval, attr_count;
+
+#ifdef SUPPORT_READ_TP_VERSION
+	char fw_version[64];
+#endif
+
+	printk("[humingming] ft5x06_ts_probe \n");
 
 	if (client->dev.of_node) {
 		pdata = devm_kzalloc(&client->dev,
@@ -2309,10 +2509,11 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 		dev_err(&client->dev, "failed to allocate input device\n");
 		return -ENOMEM;
 	}
-
+	fts_proc_entry_i2c_client = client;
 	data->input_dev = input_dev;
 	data->client = client;
 	data->pdata = pdata;
+	ft5x06_ts = data;
 
 	input_dev->name = "ft5x06_ts";
 	input_dev->id.bustype = BUS_I2C;
@@ -2324,6 +2525,9 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 	__set_bit(EV_KEY, input_dev->evbit);
 	__set_bit(EV_ABS, input_dev->evbit);
 	__set_bit(BTN_TOUCH, input_dev->keybit);
+	__set_bit(KEY_BACK, input_dev->keybit);
+	__set_bit(KEY_HOMEPAGE, input_dev->keybit);
+	__set_bit(KEY_MENU, input_dev->keybit);
 	__set_bit(INPUT_PROP_DIRECT, input_dev->propbit);
 
 	input_mt_init_slots(input_dev, pdata->num_max_touches, 0);
@@ -2582,6 +2786,15 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 	ft5x06_update_fw_ver(data);
 	ft5x06_update_fw_vendor_id(data);
 
+	printk("%s, Firmware version = 0x%02x.%d.%d, fw_vendor_id=0x%02x\n", __func__, 
+		data->fw_ver[0], data->fw_ver[1], data->fw_ver[2], data->fw_vendor_id);
+#ifdef SUPPORT_READ_TP_VERSION	
+  memset(fw_version, 0, sizeof(fw_version));
+	sprintf(fw_version, "[FW]0x%x, [IC]FT8716", data->fw_ver[0]);
+	init_tp_fm_info(0, fw_version, "FocalTech");
+#endif
+		
+	//lct_ctp_upgrade_int(ft5x06_ctp_upgrade_func, ft5x06_ctp_upgrade_read_ver_func);
 	FT_STORE_TS_DBG_INFO(data->ts_info, data->family_id, data->pdata->name,
 			data->pdata->num_max_touches, data->pdata->group_id,
 			data->pdata->fw_vkey_support ? "yes" : "no",
@@ -2604,6 +2817,11 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 	data->early_suspend.suspend = ft5x06_ts_early_suspend;
 	data->early_suspend.resume = ft5x06_ts_late_resume;
 	register_early_suspend(&data->early_suspend);
+#endif
+#if defined(FT_PROC_DEBUG)
+		if (ft5x0x_create_apk_debug_channel(client) < 0){
+			ft5x0x_release_apk_debug_channel();
+		}
 #endif
 	return 0;
 
@@ -2744,7 +2962,7 @@ MODULE_DEVICE_TABLE(i2c, ft5x06_ts_id);
 
 #ifdef CONFIG_OF
 static struct of_device_id ft5x06_match_table[] = {
-	{ .compatible = "focaltech,5x06",},
+	{ .compatible = "focaltech,fts",},
 	{ },
 };
 #else
@@ -2755,7 +2973,7 @@ static struct i2c_driver ft5x06_ts_driver = {
 	.probe = ft5x06_ts_probe,
 	.remove = ft5x06_ts_remove,
 	.driver = {
-		   .name = "ft5x06_ts",
+		   .name = "fts_ts",
 		   .owner = THIS_MODULE,
 		.of_match_table = ft5x06_match_table,
 #ifdef CONFIG_PM

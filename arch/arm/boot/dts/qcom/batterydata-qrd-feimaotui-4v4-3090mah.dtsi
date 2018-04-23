@@ -1,0 +1,63 @@
+/* Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+qcom,batterydata-qrd-feimaotui-4v4-3090mah {
+	/* batterydata-qrd-feimaotui-4v4-3090mah*/
+	qcom,max-voltage-uv = <4400000>;
+	qcom,nom-batt-capacity-mah = <3090>;
+	qcom,batt-id-kohm = <10>;
+	qcom,battery-beta = <3380>;
+	qcom,battery-type = "qrd-feimaotui-4v4-3090mah";
+	qcom,fastchg-current-ma = <2600>;
+	qcom,fg-cc-cv-threshold-mv = <4400>;
+	qcom,chg-rslow-comp-c1 = <3399393>;
+	qcom,chg-rslow-comp-c2 = <5191340>;
+	qcom,chg-rs-to-rslow = <1034103>;
+	qcom,chg-rslow-comp-thr = <0xAC>;
+	qcom,checksum = <0x45AC>;
+	qcom,thermal-coefficients = [DA 86 F0 50 08 3C];
+	qcom,gui-version = "PMI8950GUI - 2.0.0.16";
+	qcom,fg-profile-data = [
+		 E4 83 F9 7C 
+		 41 81 8C 77 
+		 64 83 2B 74 
+		 5C 89 73 94 
+		 27 82 AB 99 
+		 76 BC C2 C8 
+		 56 10 04 88 
+		 BD 7D A8 81 
+		 10 7C 51 83 
+		 14 70 13 71 
+		 AF 84 54 82 
+		 86 99 CC BC 
+		 A3 C9 5A 0D 
+		 3D 0C 88 59 
+		 14 70 A5 FD 
+		 83 35 7B 3F 
+		 AF 31 00 00 
+		 3C 45 80 22 
+		 FD 26 00 00 
+		 00 00 00 00 
+		 00 00 00 00 
+		 3B 70 2E 6B 
+		 11 70 20 89 
+		 A8 74 3C 68 
+		 31 5C 62 79 
+		 64 6E 36 60 
+		 B8 75 DF AA 
+		 1A 18 69 CD 
+		 67 A0 71 0C 
+		 28 00 FF 36 
+		 F0 11 30 03 
+		 00 00 00 0C 
+	];
+};

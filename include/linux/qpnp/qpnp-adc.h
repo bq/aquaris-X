@@ -403,6 +403,7 @@ enum qpnp_adc_scale_fn_type {
 	SCALE_QRD_SKUC_BATT_THERM,
 	SCALE_QRD_SKUE_BATT_THERM,
 	SCALE_PMI_CHG_TEMP = 16,
+	SCALE_THERM_390K_PULLUP,
 	SCALE_NONE,
 };
 
@@ -1607,6 +1608,11 @@ int32_t qpnp_adc_scale_therm_pu1(struct qpnp_vadc_chip *dev, int32_t adc_code,
  * @chan_rslt:	physical result to be stored.
  */
 int32_t qpnp_adc_scale_therm_pu2(struct qpnp_vadc_chip *dev, int32_t adc_code,
+			const struct qpnp_adc_properties *adc_prop,
+			const struct qpnp_vadc_chan_properties *chan_prop,
+			struct qpnp_vadc_result *chan_rslt);
+
+int32_t qpnp_adc_scale_therm_pu3(struct qpnp_vadc_chip *dev, int32_t adc_code,
 			const struct qpnp_adc_properties *adc_prop,
 			const struct qpnp_vadc_chan_properties *chan_prop,
 			struct qpnp_vadc_result *chan_rslt);

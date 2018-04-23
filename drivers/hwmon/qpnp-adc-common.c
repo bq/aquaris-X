@@ -535,6 +535,44 @@ static const struct qpnp_vadc_map_pt adcmap_100k_104ef_104fb[] = {
 };
 
 /* Voltage to temperature */
+static const struct qpnp_vadc_map_pt adcmap_390k_104ef_104fb[] = {
+	{1647,	-40},
+	{1593,	-35},
+	{1521,	-30},
+	{1438,	-25},
+	{1339,	-20},
+	{1228,	-15},
+	{1107,	-10},
+	{982,	-5},
+	{857,	0},
+	{738,	5},
+	{629,	10},
+	{529,	15},
+	{442,	20},
+	{360,	25},
+	{304,	30},
+	{230,	35},
+	{180,	40},
+	{155,	45},
+	{141,	50},
+	{117,	55},
+	{97,	60},
+	{81,	65},
+	{67,	70},
+	{57,	75},
+	{47,	80},
+	{40,	85},
+	{34,	90},
+	{29,	95},
+	{25,	100},
+	{21,	105},
+	{18,	110},
+	{16,	115},
+	{13,	120},
+	{11,	125}
+};
+
+/* Voltage to temperature */
 static const struct qpnp_vadc_map_pt adcmap_150k_104ef_104fb[] = {
 	{1738,	-40},
 	{1714,	-35},
@@ -1237,6 +1275,45 @@ int32_t qpnp_adc_scale_therm_pu2(struct qpnp_vadc_chip *chip,
 	return 0;
 }
 EXPORT_SYMBOL(qpnp_adc_scale_therm_pu2);
+
+int32_t qpnp_adc_scale_therm_pu3(struct qpnp_vadc_chip *chip,
+		int32_t adc_code,
+		const struct qpnp_adc_properties *adc_properties,
+		const struct qpnp_vadc_chan_properties *chan_properties,
+		struct qpnp_vadc_result *adc_chan_result)
+{
+	int64_t therm_voltage = 0;
+
+	if (!chan_properties || !chan_properties->offset_gain_numerator ||
+		!chan_properties->offset_gain_denominator || !adc_properties)
+		return -EINVAL;
+
+	if (adc_properties->adc_hc) {
+		/* (ADC code * vref_vadc (1.875V) * 1000) / (0x4000 * 1000) */
+		therm_voltage = (int64_t) adc_code;
+		therm_voltage *= (int64_t) (adc_properties->adc_vdd_reference
+							* 1000);
+		therm_voltage = div64_s64(therm_voltage,
+					(QPNP_VADC_HC_VREF_CODE * 1000));
+
+		qpnp_adc_map_voltage_temp(adcmap_100k_104ef_104fb_1875_vref,
+			ARRAY_SIZE(adcmap_100k_104ef_104fb_1875_vref),
+			therm_voltage, &adc_chan_result->physical);
+	} else {
+		qpnp_adc_scale_with_calib_param(adc_code,
+			adc_properties, chan_properties, &therm_voltage);
+
+		if (chan_properties->calib_type == CALIB_ABSOLUTE)
+			do_div(therm_voltage, 1000);
+
+		qpnp_adc_map_voltage_temp(adcmap_390k_104ef_104fb,
+			ARRAY_SIZE(adcmap_390k_104ef_104fb),
+			therm_voltage, &adc_chan_result->physical);
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(qpnp_adc_scale_therm_pu3);
 
 int32_t qpnp_adc_tm_scale_voltage_therm_pu2(struct qpnp_vadc_chip *chip,
 		const struct qpnp_adc_properties *adc_properties,

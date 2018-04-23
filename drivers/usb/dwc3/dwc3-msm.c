@@ -44,6 +44,7 @@
 #include <linux/clk/msm-clk.h>
 #include <linux/msm-bus.h>
 #include <linux/irq.h>
+#include <linux/qpnp/qpnp-adc.h>
 
 #include "power.h"
 #include "core.h"
@@ -275,6 +276,7 @@ struct dwc3_msm {
 	struct pm_qos_request   pm_qos_req_dma;
 	struct delayed_work     perf_vote_work;
 	enum dwc3_perf_mode	curr_mode;
+	struct qpnp_vadc_chip	*vadc_dev;
 };
 
 #define USB_HSPHY_3P3_VOL_MIN		3050000 /* uV */
@@ -2490,6 +2492,16 @@ static irqreturn_t msm_dwc3_pwr_irq(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static int64_t dwc3_get_adc_usbin_value(struct dwc3_msm *mdwc){
+	struct qpnp_vadc_result adc_result;
+	int rc;
+	if (!mdwc->vadc_dev)
+		return -1;
+
+	rc = qpnp_vadc_read(mdwc->vadc_dev, USBIN, &adc_result);
+	return adc_result.measurement;
+}
+
 static int dwc3_msm_power_get_property_usb(struct power_supply *psy,
 				  enum power_supply_property psp,
 				  union power_supply_propval *val)
@@ -2499,6 +2511,9 @@ static int dwc3_msm_power_get_property_usb(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 		val->intval = mdwc->voltage_max;
+		break;
+	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
+		val->intval = dwc3_get_adc_usbin_value(mdwc);
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
 		val->intval = mdwc->current_max;
@@ -2709,6 +2724,7 @@ static enum power_supply_property dwc3_msm_pm_power_props_usb[] = {
 	POWER_SUPPLY_PROP_PRESENT,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
+	POWER_SUPPLY_PROP_VOLTAGE_NOW,
 	POWER_SUPPLY_PROP_CURRENT_MAX,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_MAX,
 	POWER_SUPPLY_PROP_TYPE,
@@ -3324,6 +3340,11 @@ static int dwc3_msm_probe(struct platform_device *pdev)
 		dev_dbg(&pdev->dev, "DWC3 in host mode\n");
 		mdwc->id_state = DWC3_ID_GROUND;
 		dwc3_ext_event_notify(mdwc);
+	}
+
+	mdwc->vadc_dev = qpnp_get_vadc(&pdev->dev, "usbin");
+	if (mdwc->vadc_dev <= 0) {
+		dev_err(&pdev->dev, "Couldn't get vadc usbin\n");
 	}
 
 	return 0;

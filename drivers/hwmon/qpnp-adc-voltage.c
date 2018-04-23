@@ -222,6 +222,7 @@ static struct qpnp_vadc_scale_fn vadc_scale_fn[] = {
 	[SCALE_QRD_SKUC_BATT_THERM] = {qpnp_adc_scale_qrd_skuc_batt_therm},
 	[SCALE_QRD_SKUE_BATT_THERM] = {qpnp_adc_scale_qrd_skue_batt_therm},
 	[SCALE_PMI_CHG_TEMP] = {qpnp_adc_scale_pmi_chg_temp},
+	[SCALE_THERM_390K_PULLUP] = {qpnp_adc_scale_therm_pu3},
 };
 
 static struct qpnp_vadc_rscale_fn adc_vadc_rscale_fn[] = {
@@ -2113,6 +2114,9 @@ recalibrate:
 
 	if ((qpnp_vadc_channel_post_scaling_calib_check(vadc, channel)) < 0)
 		pr_debug("Post scaling calib type not updated\n");
+
+	if(vadc->adc->adc_channels[dt_index].channel_num == 17)
+		scale_type = SCALE_THERM_390K_PULLUP;
 
 	vadc_scale_fn[scale_type].chan(vadc, result->adc_code,
 		vadc->adc->adc_prop, vadc->adc->amux_prop->chan_prop, result);

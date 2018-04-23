@@ -777,8 +777,22 @@ config INPUT_DRV2667_HAPTICS
 	  To compile this driver as a module, choose M here: the
 	  module will be called drv260x-haptics.
 
+config HALL
+	tristate "HALL Switch"
+	help
+	 If you say yes here, you get support for hall switch control device.
+
 source "drivers/input/misc/ots_pat9125/Kconfig"
 
+config FINGERPRINT_SUNWAVE_FINGER
+	tristate "SUNWAVE_FINGER fingerprint drvier support"
+	help
+	  Say Y here to enable SUNWAVE_FINGER fingerprint driver support!
+
+config FINGERPRINT_GOODIX_GF3208
+	tristate "Goodix GFX18M fingerprint drvier support"
+	help
+	  Say Y here to enable goodix fingerprint driver support!
 config SENSORS_LTR553
 	tristate "LTR553 light and proximity device driver"
 	depends on I2C
@@ -788,6 +802,20 @@ config SENSORS_LTR553
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called ltr553.
+
+config FINGERPRINT_CS_FINGER
+	tristate "CS_FINGER fingerprint drvier support"
+	help
+	  Say Y here to enable CS_FINGER fingerprint driver support!
+
+config FINGERPRINT_CHIPSAILING_FINGER
+	tristate "CHIPSAILING fingerprint drvier support"
+	help
+	  Say Y here to enable CHIPSAILING fingerprint driver support!	  
+config FINGERPRINT_CDFINGER_FINGER
+	tristate "CDFINGER_FINGER fingerprint drvier support"
+	help
+	  Say Y here to enable CDFINGER_FINGER fingerprint driver support!
 
 config SENSORS_BMA2X2
 	tristate "BMA2x2 acceleration sensor support"

@@ -336,6 +336,7 @@ static int qpnp_typec_force_mode(struct qpnp_typec_chip *chip, int mode)
 	return rc;
 }
 
+static int Typec_direction;
 static int qpnp_typec_handle_usb_insertion(struct qpnp_typec_chip *chip, u8 reg)
 {
 	int rc;
@@ -350,6 +351,7 @@ static int qpnp_typec_handle_usb_insertion(struct qpnp_typec_chip *chip, u8 reg)
 	}
 
 	chip->cc_line_state = cc_line_state;
+	Typec_direction = cc_line_state;
 
 	pr_debug("CC_line state = %d\n", cc_line_state);
 
@@ -869,11 +871,23 @@ static int qpnp_typec_dr_get_property(struct dual_role_phy_instance *dual_role,
 	return 0;
 }
 
+static ssize_t typec_direction_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, sizeof(int), "%d\n", Typec_direction);
+}
+
+static struct device_attribute attrs[] = {
+	__ATTR(typec_direction, S_IRUGO | S_IWUSR | S_IWGRP,
+	typec_direction_show, NULL),
+};
+
 static int qpnp_typec_probe(struct spmi_device *spmi)
 {
 	int rc;
 	struct resource *resource;
 	struct qpnp_typec_chip *chip;
+	unsigned char attr_count;
 
 	resource = spmi_get_resource(spmi, NULL, IORESOURCE_MEM, 0);
 	if (!resource) {
@@ -956,6 +970,18 @@ static int qpnp_typec_probe(struct spmi_device *spmi)
 		goto unregister_psy;
 	}
 
+	for (attr_count = 0; attr_count < ARRAY_SIZE(attrs); attr_count++) {
+		rc = sysfs_create_file(&chip->dev->kobj,
+						&attrs[attr_count].attr);
+		if (rc < 0) {
+			dev_err(chip->dev,
+				"%s: Failed to create sysfs attributes\n",
+								__func__);
+			sysfs_remove_file(&chip->dev->kobj,
+						&attrs[attr_count].attr);
+		}
+	}
+
 	pr_info("TypeC successfully probed state=%d CC-line-state=%d\n",
 			chip->typec_state, chip->cc_line_state);
 	return 0;
@@ -973,6 +999,12 @@ static int qpnp_typec_remove(struct spmi_device *spmi)
 {
 	int rc;
 	struct qpnp_typec_chip *chip = dev_get_drvdata(&spmi->dev);
+	unsigned char attr_count;
+
+	for (attr_count = 0; attr_count < ARRAY_SIZE(attrs); attr_count++) {
+		sysfs_remove_file(&chip->dev->kobj,
+						&attrs[attr_count].attr);
+	}
 
 	if (chip->role_reversal_supported) {
 		cancel_delayed_work_sync(&chip->role_reversal_check);

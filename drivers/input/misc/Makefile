@@ -85,3 +85,10 @@ ifeq ($(CONFIG_BOSCH_BMA2X2_ENABLE_INT2),y)
 endif
 obj-$(CONFIG_INPUT_IDEAPAD_SLIDEBAR)	+= ideapad_slidebar.o
 obj-$(CONFIG_INPUT_PIXART_OTS_PAT9125_SWITCH)	+= ots_pat9125/
+obj-$(CONFIG_HALL)			+= hall.o
+obj-$(CONFIG_FINGERPRINT_GOODIX_GF3208)	+= gf_spi.o platform.o netlink.o
+obj-$(CONFIG_FINGERPRINT_CS_FINGER)     += chips_main.o chips_platform.o
+obj-$(CONFIG_FINGERPRINT_SUNWAVE_FINGER) += sf_spi.o sf_ctl.o
+obj-$(CONFIG_FINGERPRINT_CHIPSAILING_FINGER) += cf_ctl.o cf_spi.o
+obj-$(CONFIG_FINGERPRINT_CDFINGER_FINGER) += cdfingerfp_tz.o
+

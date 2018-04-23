@@ -12,7 +12,6 @@
  */
 
 #include "msm8953-pinctrl.dtsi"
-#include "msm8953-camera-sensor-qrd.dtsi"
 
 &soc {
 	gpio_keys {

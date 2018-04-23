@@ -1081,26 +1081,46 @@ static int qpnp_pin_apply_config(struct qpnp_pin_chip *q_chip,
 				Q_REG_DTEST_SEL_MASK);
 	}
 
-	of_property_read_u32(node, "qcom,mode",
-		&param.mode);
+#ifdef CONFIG_MSM8953_PRODUCT
+#define IS_BARDOCK_BEFORE_DVT2() ((gpio_get_value(127) == 0) && (gpio_get_value(128) == 1))
+	if((IS_BARDOCK_BEFORE_DVT2()) && (0xa300 == q_spec->offset)){
+		of_property_read_u32(node, "qcom,mode-lcd",
+			&param.mode);
+		of_property_read_u32(node, "qcom,invert-lcd",
+			&param.invert);
+		of_property_read_u32(node, "qcom,ain-route-lcd",
+			&param.ain_route);
+		of_property_read_u32(node, "qcom,master-en-lcd",
+			&param.master_en);
+		of_property_read_u32(node, "qcom,src-sel-lcd",
+			&param.src_sel);
+		of_property_read_u32(node, "qcom,vin-sel-lcd",
+			&param.vin_sel);
+	} else
+#endif
+	{
+		of_property_read_u32(node, "qcom,mode",
+			&param.mode);
+		of_property_read_u32(node, "qcom,invert",
+			&param.invert);
+		of_property_read_u32(node, "qcom,ain-route",
+			&param.ain_route);
+		of_property_read_u32(node, "qcom,master-en",
+			&param.master_en);
+		of_property_read_u32(node, "qcom,src-sel",
+			&param.src_sel);
+		of_property_read_u32(node, "qcom,vin-sel",
+			&param.vin_sel);
+	}
+
 	of_property_read_u32(node, "qcom,output-type",
 		&param.output_type);
-	of_property_read_u32(node, "qcom,invert",
-		&param.invert);
 	of_property_read_u32(node, "qcom,pull",
 		&param.pull);
-	of_property_read_u32(node, "qcom,vin-sel",
-		&param.vin_sel);
 	of_property_read_u32(node, "qcom,out-strength",
 		&param.out_strength);
-	of_property_read_u32(node, "qcom,src-sel",
-		&param.src_sel);
-	of_property_read_u32(node, "qcom,master-en",
-		&param.master_en);
 	of_property_read_u32(node, "qcom,aout-ref",
 		&param.aout_ref);
-	of_property_read_u32(node, "qcom,ain-route",
-		&param.ain_route);
 	of_property_read_u32(node, "qcom,cs-out",
 		&param.cs_out);
 	of_property_read_u32(node, "qcom,apass-sel",
