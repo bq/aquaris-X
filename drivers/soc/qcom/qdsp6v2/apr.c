@@ -598,7 +598,8 @@ void apr_cb_func(void *buf, int len, void *priv)
 
 	temp_port = ((data.dest_port >> 8) * 8) + (data.dest_port & 0xFF);
 	pr_debug("port = %d t_port = %d\n", data.src_port, temp_port);
-	if (c_svc->port_cnt && c_svc->port_fn[temp_port])
+	if (((temp_port >= 0) && (temp_port < APR_MAX_PORTS))
+		&& (c_svc->port_cnt && c_svc->port_fn[temp_port]))
 		c_svc->port_fn[temp_port](&data,  c_svc->port_priv[temp_port]);
 	else if (c_svc->fn)
 		c_svc->fn(&data, c_svc->priv);
@@ -738,6 +739,7 @@ void dispatch_event(unsigned long code, uint16_t proc)
 	uint16_t clnt;
 	int i, j;
 
+	memset(&data, 0, sizeof(data));
 	data.opcode = RESET_EVENTS;
 	data.reset_event = code;
 

@@ -38,7 +38,8 @@
 #define LANE_STATUS	0xA8
 
 #define MDSS_DSI_INT_CTRL	0x0110
-#define CEIL(x, y)                (((x) + ((y)-1)) / (y))
+
+#define CEIL(x, y)		(((x) + ((y) - 1)) / (y))
 
 struct mdss_dsi_ctrl_pdata *ctrl_list[DSI_CTRL_MAX];
 
@@ -2335,16 +2336,20 @@ void mdss_dsi_wait4video_done(struct mdss_dsi_ctrl_pdata *ctrl)
 
 	/* DSI_INTL_CTRL */
 	data = MIPI_INP((ctrl->ctrl_base) + 0x0110);
-	/* clear previous VIDEO_DONE interrupt as well */
-	data &= (DSI_INTR_TOTAL_MASK | DSI_INTR_VIDEO_DONE);
-	data |= DSI_INTR_VIDEO_DONE_MASK;
-
-	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, data);
+	/* clear previous VIDEO_DONE interrupt first */
+	data &= DSI_INTR_TOTAL_MASK;
+	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, (data | DSI_INTR_VIDEO_DONE));
+	wmb(); /* make sure write happened */
 
 	spin_lock_irqsave(&ctrl->mdp_lock, flag);
 	reinit_completion(&ctrl->video_comp);
 	mdss_dsi_enable_irq(ctrl, DSI_VIDEO_TERM);
 	spin_unlock_irqrestore(&ctrl->mdp_lock, flag);
+
+	/* set interrupt enable bit for VIDEO_DONE */
+	data |= DSI_INTR_VIDEO_DONE_MASK;
+	MIPI_OUTP((ctrl->ctrl_base) + 0x0110, data);
+	wmb(); /* make sure write happened */
 
 	wait_for_completion_timeout(&ctrl->video_comp,
 			msecs_to_jiffies(VSYNC_PERIOD * 4));
@@ -2467,15 +2472,8 @@ void mdss_dsi_cmd_mdp_busy(struct mdss_dsi_ctrl_pdata *ctrl)
 		if (!ctrl->mdp_busy)
 			rc = 1;
 		spin_unlock_irqrestore(&ctrl->mdp_lock, flags);
-		if (!rc) {
-			if (mdss_dsi_mdp_busy_tout_check(ctrl)) {
-				pr_err("%s: timeout error\n", __func__);
-				MDSS_XLOG_TOUT_HANDLER("mdp", "dsi0_ctrl",
-					"dsi0_phy", "dsi1_ctrl", "dsi1_phy",
-					"vbif", "vbif_nrt", "dbg_bus",
-					"vbif_dbg_bus", "panic");
-			}
-		}
+		if (!rc && mdss_dsi_mdp_busy_tout_check(ctrl))
+			pr_err("%s: timeout error\n", __func__);
 	}
 	pr_debug("%s: done pid=%d\n", __func__, current->pid);
 	MDSS_XLOG(ctrl->ndx, ctrl->mdp_busy, current->pid, XLOG_FUNC_EXIT);

@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2016, 2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -232,6 +232,13 @@ struct mdss_scaler_block {
 	u32 *dest_scaler_off;
 	u32 *dest_scaler_lut_off;
 	struct mdss_mdp_qseed3_lut_tbl lut_tbl;
+
+	/*
+	 * Lock is mainly to serialize access to LUT.
+	 * LUT values come asynchronously from userspace
+	 * via ioctl.
+	 */
+	struct mutex scaler_lock;
 };
 
 struct mdss_data_type;
@@ -249,7 +256,7 @@ struct mdss_smmu_ops {
 	void (*smmu_unmap_dma_buf)(struct sg_table *table, int domain,
 			int dir, struct dma_buf *dma_buf);
 	int (*smmu_dma_alloc_coherent)(struct device *dev, size_t size,
-			dma_addr_t *phys, dma_addr_t *iova, void *cpu_addr,
+			dma_addr_t *phys, dma_addr_t *iova, void **cpu_addr,
 			gfp_t gfp, int domain);
 	void (*smmu_dma_free_coherent)(struct device *dev, size_t size,
 			void *cpu_addr, dma_addr_t phys, dma_addr_t iova,

@@ -33,7 +33,6 @@
 #include <sound/pcm_params.h>
 #include <sound/q6core.h>
 #include <sound/audio_cal_utils.h>
-#include <sound/msm-dts-eagle.h>
 #include <sound/audio_effects.h>
 #include <sound/hwdep.h>
 
@@ -172,10 +171,6 @@ static void msm_pcm_routing_cfg_pp(int port_id, int copp_idx, int topology,
 					__func__, topology, port_id, rc);
 		}
 		break;
-	case ADM_CMD_COPP_OPEN_TOPOLOGY_ID_DTS_HPX:
-		pr_debug("%s: DTS_EAGLE_COPP_TOPOLOGY_ID\n", __func__);
-		msm_dts_eagle_init_post(port_id, copp_idx);
-		break;
 	case ADM_CMD_COPP_OPEN_TOPOLOGY_ID_AUDIOSPHERE:
 		pr_debug("%s: TOPOLOGY_ID_AUDIOSPHERE\n", __func__);
 		msm_qti_pp_asphere_init(port_id, copp_idx);
@@ -206,10 +201,6 @@ static void msm_pcm_routing_deinit_pp(int port_id, int topology)
 			pr_debug("%s: DOLBY_ADM_COPP_TOPOLOGY_ID\n", __func__);
 			msm_dolby_dap_deinit(port_id);
 		}
-		break;
-	case ADM_CMD_COPP_OPEN_TOPOLOGY_ID_DTS_HPX:
-		pr_debug("%s: DTS_EAGLE_COPP_TOPOLOGY_ID\n", __func__);
-		msm_dts_eagle_deinit_post(port_id, topology);
 		break;
 	case ADM_CMD_COPP_OPEN_TOPOLOGY_ID_AUDIOSPHERE:
 		pr_debug("%s: TOPOLOGY_ID_AUDIOSPHERE\n", __func__);
@@ -1763,12 +1754,18 @@ static int msm_routing_lsm_mux_put(struct snd_kcontrol *kcontrol,
 					dapm_kcontrol_get_wlist(kcontrol);
 	struct snd_soc_dapm_widget *widget = wlist->widgets[0];
 	struct soc_enum *e = (struct soc_enum *)kcontrol->private_value;
-	int mux = ucontrol->value.enumerated.item[0];
+	unsigned int mux = ucontrol->value.enumerated.item[0];
 	int lsm_port = AFE_PORT_ID_SLIMBUS_MULTI_CHAN_5_TX;
 	struct snd_soc_dapm_update *update = NULL;
 
 	pr_debug("%s: LSM enable %ld\n", __func__,
 			ucontrol->value.integer.value[0]);
+
+	if (mux >= ARRAY_SIZE(mad_audio_mux_text)){
+		pr_err(" %s: invalid mux value %d\n", __func__, mux);
+		return -EINVAL;
+	}
+
 	switch (ucontrol->value.integer.value[0]) {
 	case 1:
 		lsm_port = AFE_PORT_ID_SLIMBUS_MULTI_CHAN_0_TX;
@@ -8493,6 +8490,7 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"VOIP_UL", NULL, "VOC_EXT_EC MUX"},
 	{"VoLTE_UL", NULL, "VOC_EXT_EC MUX"},
 	{"VOICE2_UL", NULL, "VOC_EXT_EC MUX"},
+	{"VoWLAN_UL", NULL, "VOC_EXT_EC MUX"},
 	{"VOICEMMODE1_UL", NULL, "VOC_EXT_EC MUX"},
 	{"VOICEMMODE2_UL", NULL, "VOC_EXT_EC MUX"},
 
@@ -9607,8 +9605,6 @@ static int msm_routing_probe(struct snd_soc_platform *platform)
 	snd_soc_add_platform_controls(platform,
 				device_pp_params_mixer_controls,
 				ARRAY_SIZE(device_pp_params_mixer_controls));
-
-	msm_dts_eagle_add_controls(platform);
 
 	snd_soc_add_platform_controls(platform, msm_source_tracking_controls,
 				      ARRAY_SIZE(msm_source_tracking_controls));

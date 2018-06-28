@@ -537,6 +537,7 @@ static int ipa_send_wan_msg(unsigned long usr_param, uint8_t msg_type)
 	int retval;
 	struct ipa_wan_msg *wan_msg;
 	struct ipa_msg_meta msg_meta;
+	struct ipa_wan_msg cache_wan_msg;
 
 	wan_msg = kzalloc(sizeof(struct ipa_wan_msg), GFP_KERNEL);
 	if (!wan_msg) {
@@ -549,6 +550,8 @@ static int ipa_send_wan_msg(unsigned long usr_param, uint8_t msg_type)
 		kfree(wan_msg);
 		return -EFAULT;
 	}
+
+	memcpy(&cache_wan_msg, wan_msg, sizeof(cache_wan_msg));
 
 	memset(&msg_meta, 0, sizeof(struct ipa_msg_meta));
 	msg_meta.msg_type = msg_type;
@@ -642,7 +645,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_nat_dma_cmd *)param)->entries
 			!= pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_nat_dma_cmd *)param)->entries,
 				pre_entry);
 			retval = -EINVAL;
@@ -689,7 +692,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_add_hdr *)param)->num_hdrs
 			!= pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_add_hdr *)param)->num_hdrs,
 				pre_entry);
 			retval = -EINVAL;
@@ -728,7 +731,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_del_hdr *)param)->num_hdls
 			!= pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_del_hdr *)param)->num_hdls,
 				pre_entry);
 			retval = -EINVAL;
@@ -768,7 +771,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_add_rt_rule *)param)->num_rules
 			!= pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_add_rt_rule *)param)->
 				num_rules,
 				pre_entry);
@@ -808,7 +811,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_mdfy_rt_rule *)param)->num_rules
 			!= pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_mdfy_rt_rule *)param)->
 				num_rules,
 				pre_entry);
@@ -848,7 +851,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_del_rt_rule *)param)->num_hdls
 			!= pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_del_rt_rule *)param)->num_hdls,
 				pre_entry);
 			retval = -EINVAL;
@@ -887,7 +890,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_add_flt_rule *)param)->num_rules
 			!= pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_add_flt_rule *)param)->
 				num_rules,
 				pre_entry);
@@ -927,7 +930,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_del_flt_rule *)param)->num_hdls
 			!= pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_del_flt_rule *)param)->
 				num_hdls,
 				pre_entry);
@@ -967,7 +970,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_mdfy_flt_rule *)param)->num_rules
 			!= pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_mdfy_flt_rule *)param)->
 				num_rules,
 				pre_entry);
@@ -1105,7 +1108,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		if (unlikely(((struct ipa_ioc_query_intf_tx_props *)
 			param)->num_tx_props
 			!= pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_query_intf_tx_props *)
 				param)->num_tx_props, pre_entry);
 			retval = -EINVAL;
@@ -1150,7 +1153,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_query_intf_rx_props *)
 			param)->num_rx_props != pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_query_intf_rx_props *)
 				param)->num_rx_props, pre_entry);
 			retval = -EINVAL;
@@ -1195,7 +1198,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_query_intf_ext_props *)
 			param)->num_ext_props != pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_query_intf_ext_props *)
 				param)->num_ext_props, pre_entry);
 			retval = -EINVAL;
@@ -1233,7 +1236,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_msg_meta *)param)->msg_len
 			!= pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_msg_meta *)param)->msg_len,
 				pre_entry);
 			retval = -EINVAL;
@@ -1373,7 +1376,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_add_hdr_proc_ctx *)
 			param)->num_proc_ctxs != pre_entry)) {
-			IPAERR(" prevent memory corruption(%d not match %d)\n",
+			IPAERR_RL("current %d pre %d\n",
 				((struct ipa_ioc_add_hdr_proc_ctx *)
 				param)->num_proc_ctxs, pre_entry);
 			retval = -EINVAL;
@@ -1412,7 +1415,7 @@ static long ipa_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		/* add check in case user-space module compromised */
 		if (unlikely(((struct ipa_ioc_del_hdr_proc_ctx *)
 			param)->num_hdls != pre_entry)) {
-			IPAERR(" prevent memory corruption( %d not match %d)\n",
+			IPAERR_RL(" current %d pre %d\n",
 				((struct ipa_ioc_del_hdr_proc_ctx *)param)->
 				num_hdls,
 				pre_entry);
@@ -1838,7 +1841,7 @@ static int ipa_q6_clean_q6_tables(void)
 	u32 max_cmds = ipa_get_max_flt_rt_cmds(ipa_ctx->ipa_num_pipes);
 
 	mem.base = dma_alloc_coherent(ipa_ctx->pdev, 4, &mem.phys_base,
-		GFP_KERNEL);
+		GFP_ATOMIC);
 	if (!mem.base) {
 		IPAERR("failed to alloc DMA buff of size 4\n");
 		return -ENOMEM;

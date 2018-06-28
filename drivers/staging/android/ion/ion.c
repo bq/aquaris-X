@@ -3,7 +3,7 @@
  * drivers/staging/android/ion/ion.c
  *
  * Copyright (C) 2011 Google, Inc.
- * Copyright (c) 2011-2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2011-2017, The Linux Foundation. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -704,7 +704,7 @@ static void user_ion_free_nolock(struct ion_client *client,
 		WARN(1, "%s: invalid handle passed to free.\n", __func__);
 		return;
 	}
-	if (!handle->user_ref_count > 0) {
+	if (handle->user_ref_count == 0) {
 		WARN(1, "%s: User does not have access!\n", __func__);
 		return;
 	}
@@ -884,7 +884,7 @@ static int ion_debug_client_show(struct seq_file *s, void *unused)
 		struct ion_handle *handle = rb_entry(n, struct ion_handle,
 						     node);
 
-		seq_printf(s, "%16.16s: %16zx : %16d : %12p",
+		seq_printf(s, "%16.16s: %16zx : %16d : %12pK",
 				handle->buffer->heap->name,
 				handle->buffer->size,
 				atomic_read(&handle->ref.refcount),
@@ -1522,6 +1522,11 @@ static int ion_sync_for_device(struct ion_client *client, int fd)
 	}
 	buffer = dmabuf->priv;
 
+	if (get_secure_vmid(buffer->flags) > 0) {
+		pr_err("%s: cannot sync a secure dmabuf\n", __func__);
+		dma_buf_put(dmabuf);
+		return -EINVAL;
+	}
 	dma_sync_sg_for_device(NULL, buffer->sg_table->sgl,
 			       buffer->sg_table->nents, DMA_BIDIRECTIONAL);
 	dma_buf_put(dmabuf);

@@ -2,7 +2,7 @@
  * drivers/mmc/host/sdhci-msm.c - Qualcomm MSM SDHCI Platform
  * driver source file
  *
- * Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -958,6 +958,7 @@ int sdhci_msm_execute_tuning(struct sdhci_host *host, u32 opcode)
 	bool drv_type_changed = false;
 	struct mmc_card *card = host->mmc->card;
 	int sts_retry;
+	u8 last_good_phase = 0;
 
 	/*
 	 * Tuning is required for SDR104, HS200 and HS400 cards and
@@ -1043,6 +1044,22 @@ retry:
 		mmc_wait_for_req(mmc, &mrq);
 
 		if (card && (cmd.error || data.error)) {
+			/*
+			 * Set the dll to last known good phase while sending
+			 * status command to ensure that status command won't
+			 * fail due to bad phase.
+			 */
+			if (tuned_phase_cnt)
+				last_good_phase =
+					tuned_phases[tuned_phase_cnt-1];
+			else if (msm_host->saved_tuning_phase !=
+					INVALID_TUNING_PHASE)
+				last_good_phase = msm_host->saved_tuning_phase;
+
+			rc = msm_config_cm_dll_phase(host, last_good_phase);
+			if (rc)
+				goto kfree;
+
 			sts_cmd.opcode = MMC_SEND_STATUS;
 			sts_cmd.arg = card->rca << 16;
 			sts_cmd.flags = MMC_RSP_R1 | MMC_CMD_AC;
@@ -2181,21 +2198,6 @@ out:
 	return ret;
 }
 
-/*
- * Reset vreg by ensuring it is off during probe. A call
- * to enable vreg is needed to balance disable vreg
- */
-static int sdhci_msm_vreg_reset(struct sdhci_msm_pltfm_data *pdata)
-{
-	int ret;
-
-	ret = sdhci_msm_setup_vreg(pdata, 1, true);
-	if (ret)
-		return ret;
-	ret = sdhci_msm_setup_vreg(pdata, 0, true);
-	return ret;
-}
-
 /* This init function should be called only once for each SDHC slot */
 static int sdhci_msm_vreg_init(struct device *dev,
 				struct sdhci_msm_pltfm_data *pdata,
@@ -2230,7 +2232,7 @@ static int sdhci_msm_vreg_init(struct device *dev,
 		if (ret)
 			goto vdd_reg_deinit;
 	}
-	ret = sdhci_msm_vreg_reset(pdata);
+
 	if (ret)
 		dev_err(dev, "vreg reset failed (%d)\n", ret);
 	goto out;
@@ -2396,7 +2398,9 @@ static irqreturn_t sdhci_msm_pwr_irq(int irq, void *data)
 		io_level = REQ_IO_HIGH;
 	}
 	if (irq_status & CORE_PWRCTL_BUS_OFF) {
-		ret = sdhci_msm_setup_vreg(msm_host->pdata, false, false);
+		if (msm_host->pltfm_init_done)
+			ret = sdhci_msm_setup_vreg(msm_host->pdata,
+					false, false);
 		if (!ret) {
 			ret = sdhci_msm_setup_pins(msm_host->pdata, false);
 			ret |= sdhci_msm_set_vdd_io_vol(msm_host->pdata,
@@ -3646,11 +3650,10 @@ void sdhci_msm_pm_qos_cpu_init(struct sdhci_host *host,
 		group->latency = latency[i].latency[SDHCI_PERFORMANCE_MODE];
 		pm_qos_add_request(&group->req, PM_QOS_CPU_DMA_LATENCY,
 			group->latency);
-		pr_info("%s (): voted for group #%d (mask=0x%lx) latency=%d (0x%p)\n",
+		pr_info("%s (): voted for group #%d (mask=0x%lx) latency=%d\n",
 			__func__, i,
 			group->req.cpus_affine.bits[0],
-			group->latency,
-			&latency[i].latency[SDHCI_PERFORMANCE_MODE]);
+			group->latency);
 	}
 	msm_host->pm_qos_prev_cpu = -1;
 	msm_host->pm_qos_group_enable = true;
@@ -4127,8 +4130,6 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 			goto vreg_deinit;
 		}
 		writel_relaxed(readl_relaxed(tlmm_mem) | 0x2, tlmm_mem);
-		dev_dbg(&pdev->dev, "tlmm reg %pa value 0x%08x\n",
-				&tlmm_memres->start, readl_relaxed(tlmm_mem));
 	}
 
 	/*
@@ -4340,6 +4341,8 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Add host failed (%d)\n", ret);
 		goto free_cd_gpio;
 	}
+
+	msm_host->pltfm_init_done = true;
 
 	pm_runtime_set_active(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);

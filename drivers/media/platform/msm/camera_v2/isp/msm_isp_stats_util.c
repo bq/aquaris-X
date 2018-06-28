@@ -680,6 +680,8 @@ static int msm_isp_start_stats_stream(struct vfe_device *vfe_dev,
 			stream_cfg_cmd->num_streams);
 		return -EINVAL;
 	}
+	mutex_lock(&vfe_dev->buf_mgr->lock);
+
 	num_stats_comp_mask =
 		vfe_dev->hw_info->stats_hw_info->num_stats_comp_mask;
 	rc = vfe_dev->hw_info->vfe_ops.stats_ops.check_streams(
@@ -692,6 +694,7 @@ static int msm_isp_start_stats_stream(struct vfe_device *vfe_dev,
 
 		if (idx >= vfe_dev->hw_info->stats_hw_info->num_stats_type) {
 			pr_err("%s Invalid stats index %d", __func__, idx);
+			mutex_unlock(&vfe_dev->buf_mgr->lock);
 			return -EINVAL;
 		}
 
@@ -707,11 +710,13 @@ static int msm_isp_start_stats_stream(struct vfe_device *vfe_dev,
 			pr_err("%s: comp grp %d exceed max %d\n",
 				__func__, stream_info->composite_flag,
 				num_stats_comp_mask);
+			mutex_unlock(&vfe_dev->buf_mgr->lock);
 			return -EINVAL;
 		}
 		rc = msm_isp_init_stats_ping_pong_reg(vfe_dev, stream_info);
 		if (rc < 0) {
 			pr_err("%s: No buffer for stream%d\n", __func__, idx);
+			mutex_unlock(&vfe_dev->buf_mgr->lock);
 			return rc;
 		}
 		if (!stream_info->composite_flag)
@@ -736,6 +741,7 @@ static int msm_isp_start_stats_stream(struct vfe_device *vfe_dev,
 			stats_data->num_active_stream);
 
 	}
+	mutex_unlock(&vfe_dev->buf_mgr->lock);
 
 	if (vfe_dev->axi_data.src_info[VFE_PIX_0].active) {
 		rc = msm_isp_stats_wait_for_cfg_done(vfe_dev);
@@ -856,6 +862,12 @@ int msm_isp_cfg_stats_stream(struct vfe_device *vfe_dev, void *arg)
 	struct msm_vfe_stats_stream_cfg_cmd *stream_cfg_cmd = arg;
 	if (vfe_dev->stats_data.num_active_stream == 0)
 		vfe_dev->hw_info->vfe_ops.stats_ops.cfg_ub(vfe_dev);
+
+	if (stream_cfg_cmd->num_streams > MSM_ISP_STATS_MAX) {
+		pr_err("%s invalid num_streams %d\n", __func__,
+			stream_cfg_cmd->num_streams);
+		return -EINVAL;
+	}
 
 	if (stream_cfg_cmd->enable) {
 		msm_isp_stats_update_cgc_override(vfe_dev, stream_cfg_cmd);

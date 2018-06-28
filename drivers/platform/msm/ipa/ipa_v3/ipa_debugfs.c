@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2016, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -106,6 +106,7 @@ static char dbg_buff[IPA_MAX_MSG_LEN];
 static char *active_clients_buf;
 
 static s8 ep_reg_idx;
+static void *ipa_ipc_low_buff;
 
 
 static ssize_t ipa3_read_gen_reg(struct file *file, char __user *ubuf,
@@ -826,10 +827,11 @@ static ssize_t ipa3_read_flt(struct file *file, char __user *ubuf, size_t count,
 				eq = true;
 			} else {
 				rt_tbl = ipa3_id_find(entry->rule.rt_tbl_hdl);
-				if (rt_tbl)
-					rt_tbl_idx = rt_tbl->idx;
+				if (rt_tbl == NULL ||
+					rt_tbl->cookie != IPA_RT_TBL_COOKIE)
+					rt_tbl_idx =  ~0;
 				else
-					rt_tbl_idx = ~0;
+					rt_tbl_idx = rt_tbl->idx;
 				bitmap = entry->rule.attrib.attrib_mask;
 				eq = false;
 			}
@@ -1430,7 +1432,11 @@ static ssize_t ipa3_read_nat4(struct file *file,
 	pr_err("Table Size:%d\n",
 				ipa3_ctx->nat_mem.size_base_tables);
 
-	pr_err("Expansion Table Size:%d\n",
+	if (!ipa3_ctx->nat_mem.size_expansion_tables)
+		pr_err("Expansion Table Size:%d\n",
+				ipa3_ctx->nat_mem.size_expansion_tables);
+	else
+		pr_err("Expansion Table Size:%d\n",
 				ipa3_ctx->nat_mem.size_expansion_tables-1);
 
 	if (!ipa3_ctx->nat_mem.is_sys_mem)
@@ -1445,6 +1451,8 @@ static ssize_t ipa3_read_nat4(struct file *file,
 
 			pr_err("\nBase Table:\n");
 		} else {
+			if (!ipa3_ctx->nat_mem.size_expansion_tables)
+				continue;
 			tbl_size = ipa3_ctx->nat_mem.size_expansion_tables-1;
 			base_tbl =
 			 (u32 *)ipa3_ctx->nat_mem.ipv4_expansion_rules_addr;
@@ -1544,6 +1552,8 @@ static ssize_t ipa3_read_nat4(struct file *file,
 
 			pr_err("\nIndex Table:\n");
 		} else {
+			if (!ipa3_ctx->nat_mem.size_expansion_tables)
+				continue;
 			tbl_size = ipa3_ctx->nat_mem.size_expansion_tables-1;
 			indx_tbl =
 			 (u32 *)ipa3_ctx->nat_mem.index_table_expansion_addr;
@@ -1715,22 +1725,20 @@ static ssize_t ipa3_enable_ipc_low(struct file *file,
 	if (kstrtos8(dbg_buff, 0, &option))
 		return -EFAULT;
 
+	mutex_lock(&ipa3_ctx->lock);
 	if (option) {
-		if (!ipa3_ctx->logbuf_low) {
-			ipa3_ctx->logbuf_low =
+		if (!ipa_ipc_low_buff) {
+			ipa_ipc_low_buff =
 				ipc_log_context_create(IPA_IPC_LOG_PAGES,
 					"ipa_low", 0);
 		}
-
-		if (ipa3_ctx->logbuf_low == NULL) {
-			IPAERR("failed to get logbuf_low\n");
-			return -EFAULT;
-		}
+			if (ipa_ipc_low_buff == NULL)
+				IPAERR("failed to get logbuf_low\n");
+		ipa3_ctx->logbuf_low = ipa_ipc_low_buff;
 	} else {
-		if (ipa3_ctx->logbuf_low)
-			ipc_log_context_destroy(ipa3_ctx->logbuf_low);
 		ipa3_ctx->logbuf_low = NULL;
 	}
+	mutex_unlock(&ipa3_ctx->lock);
 
 	return count;
 }
