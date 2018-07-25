@@ -26,6 +26,17 @@
 	qcom,board-id= <0x2000b 0>;
 };
 
+&firmware {
+	android {
+		compatible = "android,firmware";
+		fstab {
+			system {
+				fsmgr_flags = "wait,verify";
+			};
+		};
+	};
+};
+
 &soc {
 	led_flash0: qcom,camera-flash {
 		cell-index = <0>;
