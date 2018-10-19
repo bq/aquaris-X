@@ -1,4 +1,4 @@
-/* Copyright (c) 2013-2014, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2013-2014, 2017-2018 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -36,6 +36,8 @@
 #define GPIO_OUT_LOW          (0 << 1)
 #define GPIO_OUT_HIGH         (1 << 1)
 
+#define SEQ_NUM 2
+
 enum msm_flash_seq_type_t {
 	FLASH_EN,
 	FLASH_NOW,
@@ -69,7 +71,6 @@ static void led_gpio_brightness_set(struct led_classdev *led_cdev,
 	int rc = 0;
 	struct led_gpio_flash_data *flash_led =
 	    container_of(led_cdev, struct led_gpio_flash_data, cdev);
-
 	int brightness = value;
 	int flash_en = 0, flash_now = 0;
 
@@ -111,19 +112,21 @@ static enum led_brightness led_gpio_brightness_get(struct led_classdev
 {
 	struct led_gpio_flash_data *flash_led =
 	    container_of(led_cdev, struct led_gpio_flash_data, cdev);
+
 	return flash_led->brightness;
 }
 
-int led_gpio_flash_probe(struct platform_device *pdev)
+static int led_gpio_flash_probe(struct platform_device *pdev)
 {
 	int rc = 0;
 	const char *temp_str;
 	struct led_gpio_flash_data *flash_led = NULL;
 	struct device_node *node = pdev->dev.of_node;
 	const char *seq_name = NULL;
-	uint32_t array_flash_seq[2];
-	uint32_t array_torch_seq[2];
+	uint32_t array_flash_seq[SEQ_NUM];
+	uint32_t array_torch_seq[SEQ_NUM];
 	int i = 0;
+
 	flash_led = devm_kzalloc(&pdev->dev, sizeof(struct led_gpio_flash_data),
 				 GFP_KERNEL);
 	printk(KERN_DEBUG "led_gpio_flash_probe 01\n");
@@ -146,12 +149,23 @@ int led_gpio_flash_probe(struct platform_device *pdev)
 	}
 	printk(KERN_DEBUG "led_gpio_flash_probe 022 rc = %d,flash_led->pinctrl = %p\n",rc,flash_led->pinctrl);
 
+	flash_led->gpio_state_default = pinctrl_lookup_state(flash_led->pinctrl,
+		"flash_default");
+	if (IS_ERR(flash_led->gpio_state_default)) {
+		pr_err("%s:can not get active pinstate\n", __func__);
+		return -EINVAL;
+	}
+
+	rc = pinctrl_select_state(flash_led->pinctrl,
+		flash_led->gpio_state_default);
+	if (rc)
+		pr_err("%s:set state failed!\n", __func__);
 
 	flash_led->flash_en = of_get_named_gpio(node, "qcom,flash-en", 0);
 	if (flash_led->flash_en < 0) {
 		dev_err(&pdev->dev,
 			"Looking up %s property in node %s failed. rc =  %d\n",
-			"flash-en", node->full_name, flash_led->flash_en);
+			"qcom,flash-en", node->full_name, flash_led->flash_en);
 		goto error;
 	} else {
 		rc = gpio_request(flash_led->flash_en, "FLASH_EN");
@@ -168,7 +182,8 @@ int led_gpio_flash_probe(struct platform_device *pdev)
 	if (flash_led->flash_now < 0) {
 		dev_err(&pdev->dev,
 			"Looking up %s property in node %s failed. rc =  %d\n",
-			"flash-now", node->full_name, flash_led->flash_now);
+			"qcom,flash-now", node->full_name,
+			flash_led->flash_now);
 		goto error;
 	} else {
 		rc = gpio_request(flash_led->flash_now, "FLASH_NOW");
@@ -183,7 +198,7 @@ int led_gpio_flash_probe(struct platform_device *pdev)
 	rc = of_property_read_string(node, "linux,name", &flash_led->cdev.name);
 	printk(KERN_DEBUG "of_property_read_string rc = %d\n",rc);
 	if (rc) {
-		dev_err(&pdev->dev, "%s: Failed to read linux name. rc = %d\n",
+		dev_err(&pdev->dev, "%s: Failed to read linux,name. rc = %d\n",
 			__func__, rc);
 		goto error;
 	}
@@ -192,7 +207,7 @@ int led_gpio_flash_probe(struct platform_device *pdev)
 		array_flash_seq, 2);
 
 	if (rc < 0) {
-		pr_err("%s get flash op seq failed %d\n",
+		pr_err("%s get qcom,flash-seq-val failed %d\n",
 			__func__, __LINE__);
 		goto error;
 	}
@@ -201,19 +216,19 @@ int led_gpio_flash_probe(struct platform_device *pdev)
 		array_torch_seq, 2);
 
 	if (rc < 0) {
-		pr_err("%s get torch op seq failed %d\n",
+		pr_err("%s get qcom,torch-seq-val failed %d\n",
 			__func__, __LINE__);
 		goto error;
 	}
 
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < SEQ_NUM; i++) {
 		rc = of_property_read_string_index(node,
 			"qcom,op-seq", i,
 			&seq_name);
 		CDBG("%s seq_name[%d] = %s\n", __func__, i,
 			seq_name);
 		if (rc < 0)
-			dev_err(&pdev->dev, "%s failed %d\n",
+			dev_err(&pdev->dev, "%s qcom,op-seq failed %d\n",
 				__func__, __LINE__);
 
 		if (!strcmp(seq_name, "flash_en")) {
@@ -279,10 +294,11 @@ error:
 	return rc;
 }
 
-int led_gpio_flash_remove(struct platform_device *pdev)
+static int led_gpio_flash_remove(struct platform_device *pdev)
 {
 	struct led_gpio_flash_data *flash_led =
 	    (struct led_gpio_flash_data *)platform_get_drvdata(pdev);
+
 	if (IS_ERR(flash_led->pinctrl))
 		devm_pinctrl_put(flash_led->pinctrl);
 	led_classdev_unregister(&flash_led->cdev);
