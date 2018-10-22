@@ -43,8 +43,12 @@ static struct mdss_dsi_data *mdss_dsi_res;
 #define DSI_DISABLE_PC_LATENCY 100
 #define DSI_ENABLE_PC_LATENCY PM_QOS_DEFAULT_VALUE
 
+#ifdef CONFIG_TOUCHSCREEN_FTS
 extern int focaltech_gesture_enable;
+#endif
+#ifdef CONFIG_TOUCHSCREEN_ILI2120
 extern int ilitek_gesture_enable;
+#endif
 
 static struct pm_qos_request mdss_dsi_pm_qos_request;
 
@@ -298,11 +302,21 @@ static int mdss_dsi_panel_power_off(struct mdss_panel_data *pdata)
 	if (mdss_dsi_pinctrl_set_state(ctrl_pdata, false))
 		pr_debug("reset disable: pinctrl not enabled\n");
 
-	if (focaltech_gesture_enable == 1 || ilitek_gesture_enable == 1) {
+#ifdef CONFIG_TOUCHSCREEN_FTS
+	if (focaltech_gesture_enable == 1) {
 		ret = msm_dss_enable_vreg(
 			ctrl_pdata->panel_power_data.vreg_config,
 			ctrl_pdata->panel_power_data.num_vreg, 1);
-	} else {
+	} else 
+#endif
+#ifdef CONFIG_TOUCHSCREEN_ILI2120
+	if (ilitek_gesture_enable == 1) {
+		ret = msm_dss_enable_vreg(
+			ctrl_pdata->panel_power_data.vreg_config,
+			ctrl_pdata->panel_power_data.num_vreg, 1);
+	} else 
+#endif
+		{
 		ret = msm_dss_enable_vreg(
 			ctrl_pdata->panel_power_data.vreg_config,
 			ctrl_pdata->panel_power_data.num_vreg, 0);
@@ -4133,7 +4147,6 @@ static int mdss_dsi_parse_gpio_params(struct platform_device *ctrl_pdev,
 	if (!gpio_is_valid(ctrl_pdata->intf_mux_gpio))
 		pr_debug("%s:%d, intf mux gpio not specified\n",
 						__func__, __LINE__);
-
 	return 0;
 }
 

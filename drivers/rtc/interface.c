@@ -778,6 +778,38 @@ retry:
 }
 EXPORT_SYMBOL_GPL(rtc_irq_set_freq);
 
+int get_current_rtc_time(struct rtc_time *tm, unsigned long *now_tm_sec)
+{
+	struct rtc_device *rtc;
+	int rc;
+
+	rtc = rtc_class_open(CONFIG_RTC_HCTOSYS_DEVICE);
+	if (rtc == NULL) {
+		pr_err("%s: unable to open rtc device (%s)\n",
+			__FILE__, CONFIG_RTC_HCTOSYS_DEVICE);
+		return -EINVAL;
+	}
+
+	rc = rtc_read_time(rtc, tm);
+	if (rc) {
+		pr_err("Error reading rtc device (%s) : %d\n",
+			CONFIG_RTC_HCTOSYS_DEVICE, rc);
+		goto close_time;
+	}
+
+	rc = rtc_valid_tm(tm);
+	if (rc) {
+		pr_err("Invalid RTC time (%s): %d\n",
+			CONFIG_RTC_HCTOSYS_DEVICE, rc);
+		goto close_time;
+	}
+	rtc_tm_to_time(tm, now_tm_sec);
+
+close_time:
+	rtc_class_close(rtc);
+	return rc;
+}
+EXPORT_SYMBOL_GPL(get_current_rtc_time);
 /**
  * rtc_timer_enqueue - Adds a rtc_timer to the rtc_device timerqueue
  * @rtc rtc device

@@ -18,6 +18,8 @@
 #include "msm_flash.h"
 #include "msm_camera_dt_util.h"
 #include "msm_cci.h"
+#include "msm_camera_io_util.h"
+#include <linux/qpnp/pin.h>
 
 #undef CDBG
 #define CDBG(fmt, args...) pr_debug(fmt, ##args)
@@ -27,6 +29,23 @@ DEFINE_MSM_MUTEX(msm_flash_mutex);
 static struct v4l2_file_operations msm_flash_v4l2_subdev_fops;
 static struct led_trigger *torch_trigger;
 
+#define AW3640_FLASH
+#define SGM3785_FLASH
+
+#ifdef AW3640_FLASH
+struct msm_flash_ctrl_t  *front_flash_ctrl;
+
+#define AW3640_MAX_STEP   16
+#define AW3640_FLASH_HIGH 15
+#define AW3640_FLASH_LOW  4
+#define AW3640_LED_HIGH  15
+#define AW3640_LED_MID   12
+#define AW3640_LED_LOW  4
+#endif
+
+#ifdef SGM3785_FLASH
+struct msm_flash_ctrl_t  *rear_flash_ctrl;
+#endif
 static const struct of_device_id msm_flash_i2c_dt_match[] = {
 	{.compatible = "qcom,camera-flash"},
 	{}
@@ -45,11 +64,22 @@ static const struct of_device_id msm_flash_dt_match[] = {
 static struct msm_flash_table msm_i2c_flash_table;
 static struct msm_flash_table msm_gpio_flash_table;
 static struct msm_flash_table msm_pmic_flash_table;
-
+#ifdef AW3640_FLASH
+static struct msm_flash_table msm_aw3640_flash_table;
+#endif
+#ifdef SGM3785_FLASH
+static struct msm_flash_table msm_sgm3785_flash_table;
+#endif
 static struct msm_flash_table *flash_table[] = {
 	&msm_i2c_flash_table,
 	&msm_gpio_flash_table,
-	&msm_pmic_flash_table
+#ifdef AW3640_FLASH
+	&msm_aw3640_flash_table,
+#endif
+#ifdef SGM3785_FLASH
+	&msm_sgm3785_flash_table,
+#endif
+  &msm_pmic_flash_table
 };
 
 static struct msm_camera_i2c_fn_t msm_flash_qup_func_tbl = {
@@ -420,6 +450,267 @@ static int32_t msm_flash_off(struct msm_flash_ctrl_t *flash_ctrl,
 	CDBG("Exit\n");
 	return 0;
 }
+
+#ifdef AW3640_FLASH
+void msm_front_leds_aw3640_brightness_set(int value)
+{
+    int  i = 0;
+    gpio_direction_output(front_flash_ctrl->front_gpio_flash,0);
+    mdelay(3);
+    gpio_direction_output(front_flash_ctrl->front_gpio_flash,1);
+    udelay(25);
+    for (i = 0; i < AW3640_MAX_STEP - value; i++ )
+    {
+        gpio_direction_output(front_flash_ctrl->front_gpio_flash,0);
+        udelay(1);
+        gpio_direction_output(front_flash_ctrl->front_gpio_flash,1);
+        udelay(1);
+    }
+}
+void msm_front_leds_aw3640_torch_brightness_set(int value)
+{
+    int  i = 0;
+    gpio_direction_output(front_flash_ctrl->front_gpio_flash,0);
+    mdelay(3);
+    gpio_direction_output(front_flash_ctrl->front_gpio_flash,1);
+    udelay(25);
+    for (i = 1; i < AW3640_MAX_STEP - value; i++ )
+    {
+        gpio_direction_output(front_flash_ctrl->front_gpio_flash,0);
+        udelay(1);
+        gpio_direction_output(front_flash_ctrl->front_gpio_flash,1);
+        udelay(1);
+    }
+}
+
+void msm_front_leds_brightness_set(struct led_classdev *led_cdev,
+				enum led_brightness value)
+{
+	static int cur_level, prev_level;
+	if (value > LED_FULL)
+		value = LED_FULL;
+	cur_level = (value + 15) / 16;
+		pr_err("brightness: %d,cur_level:%d\n", value, cur_level);
+	if(value){
+		if(!(front_flash_ctrl->front_flash_init))
+			front_flash_ctrl->front_flash_init=TRUE;
+		if(cur_level != prev_level)
+			msm_front_leds_aw3640_brightness_set(cur_level);
+		prev_level = cur_level;
+	}else{
+		pr_err("front flash off");
+		gpio_direction_output(front_flash_ctrl->front_gpio_flash,0);
+		mdelay(4);
+		if(front_flash_ctrl->front_flash_init) {
+			front_flash_ctrl->front_flash_init=FALSE;
+		}
+	}
+}
+static struct led_classdev msm_front_leds = {
+	.name                   = "front-lights",
+	.brightness_set = msm_front_leds_brightness_set,
+	.brightness             = LED_OFF,
+};
+
+static int32_t msm_front_leds_create_classdev(struct device *dev ,
+	                                            void *data)
+{
+	int rc = 0;
+	CDBG("Enter\n");
+	rc = led_classdev_register(dev, &msm_front_leds);
+	if (rc)
+	{
+		pr_err("Failed to register dual_leds dev. rc = %d\n", rc);
+		return rc;
+	}
+	return 0;
+}
+
+static int32_t msm_flash_aw3640_init(
+	struct msm_flash_ctrl_t *flash_ctrl,
+	struct msm_flash_cfg_data_t *flash_data)
+{
+	CDBG("Enter");
+	gpio_direction_output(front_flash_ctrl->front_gpio_flash,0);
+	mdelay(4);
+	front_flash_ctrl->front_flash_init=TRUE;
+	CDBG("Exit");
+	return 0;
+
+}
+
+static int32_t msm_flash_aw3640_release(
+	struct msm_flash_ctrl_t *flash_ctrl)
+{
+	CDBG("Enter");
+	gpio_direction_output(front_flash_ctrl->front_gpio_flash,0);
+	mdelay(4);
+	front_flash_ctrl->front_flash_init=FALSE;
+	flash_ctrl->flash_state = MSM_CAMERA_FLASH_RELEASE;
+	CDBG("Exit");
+	return 0;
+}
+
+static int32_t msm_flash_aw3640_off(struct msm_flash_ctrl_t *flash_ctrl,
+	struct msm_flash_cfg_data_t *flash_data)
+{
+	CDBG("Enter");
+	gpio_direction_output(front_flash_ctrl->front_gpio_flash,0);
+	mdelay(4);
+	CDBG("Exit");
+	return 0;
+}
+static int32_t msm_flash_aw3640_low(struct msm_flash_ctrl_t *flash_ctrl,
+	struct msm_flash_cfg_data_t *flash_data)
+{
+	CDBG("Enter");
+	msm_front_leds_aw3640_brightness_set(AW3640_FLASH_LOW);
+	CDBG("Exit");
+	return 0;
+}
+static int32_t msm_flash_aw3640_high(struct msm_flash_ctrl_t *flash_ctrl,
+	struct msm_flash_cfg_data_t *flash_data)
+{
+	CDBG("Enter");
+	msm_front_leds_aw3640_brightness_set(AW3640_FLASH_HIGH);
+	CDBG("Exit");
+	return 0;
+}
+static int32_t msm_flash_aw3640_torch_low(struct msm_flash_ctrl_t *flash_ctrl,
+	struct msm_flash_cfg_data_t *flash_data)
+{
+	CDBG("Enter");
+	msm_front_leds_aw3640_torch_brightness_set(AW3640_LED_LOW);
+	CDBG("Exit");
+	return 0;
+}
+static int32_t msm_flash_aw3640_torch_mid(struct msm_flash_ctrl_t *flash_ctrl,
+	struct msm_flash_cfg_data_t *flash_data)
+{
+	CDBG("Enter");
+	msm_front_leds_aw3640_torch_brightness_set(AW3640_LED_MID);
+	CDBG("Exit");
+	return 0;
+}
+static int32_t msm_flash_aw3640_torch_high(struct msm_flash_ctrl_t *flash_ctrl,
+	struct msm_flash_cfg_data_t *flash_data)
+{
+	CDBG("Enter");
+	msm_front_leds_aw3640_torch_brightness_set(AW3640_LED_HIGH);
+	CDBG("Exit");
+	return 0;
+}
+#endif
+
+#ifdef SGM3785_FLASH
+
+void msm_rear_leds_sgm3785_brightness_set(int value)
+{
+    if(value <= LED_HALF  && value > 0){
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_torch,1);
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_flash,0);
+        msleep(6);
+    }else if(value > LED_HALF && value <=LED_FULL){
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_flash,1);
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_torch,1);
+        msleep(6);
+    }else{
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_flash,0);
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_torch,0);
+    }
+}
+void msm_rear_leds_brightness_set(struct led_classdev *led_cdev,
+				enum led_brightness value)
+{
+
+   if(value <= LED_HALF  && value > 0){
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_torch,1);
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_flash,0);
+        msleep(6);
+    }else if(value > LED_HALF && value <=LED_FULL){
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_flash,1);
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_torch,1);
+        msleep(6);
+    }else{
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_flash,0);
+        gpio_direction_output(rear_flash_ctrl->rear_gpio_torch,0);
+    }
+
+}
+static struct led_classdev msm_rear_leds = {
+	.name                   = "rear-lights",
+	.brightness_set = msm_rear_leds_brightness_set,
+	.brightness             = LED_OFF,
+};
+
+static int32_t msm_rear_leds_create_classdev(struct device *dev ,
+	                                            void *data)
+{
+	int rc = 0;
+	CDBG("Enter\n");
+	rc = led_classdev_register(dev, &msm_rear_leds);
+	if (rc)
+	{
+		pr_err("Failed to register dual_leds dev. rc = %d\n", rc);
+		return rc;
+	}
+	return 0;
+}
+
+static int32_t msm_flash_sgm3785_init(
+	struct msm_flash_ctrl_t *flash_ctrl,
+	struct msm_flash_cfg_data_t *flash_data)
+{
+	CDBG("Enter");
+	gpio_direction_output(flash_ctrl->rear_gpio_torch,0);
+	gpio_direction_output(flash_ctrl->rear_gpio_flash,0);
+	mdelay(2);
+	rear_flash_ctrl->rear_flash_init=TRUE;
+	CDBG("Exit");
+	return 0;
+
+}
+
+static int32_t msm_flash_sgm3785_release(
+	struct msm_flash_ctrl_t *flash_ctrl)
+{
+	CDBG("Enter");
+	gpio_direction_output(rear_flash_ctrl->rear_gpio_torch,0);
+	gpio_direction_output(front_flash_ctrl->rear_gpio_flash,0);
+	mdelay(2);
+	rear_flash_ctrl->rear_flash_init=FALSE;
+	flash_ctrl->flash_state = MSM_CAMERA_FLASH_RELEASE;
+	CDBG("Exit");
+	return 0;
+}
+
+static int32_t msm_flash_sgm3785_off(struct msm_flash_ctrl_t *flash_ctrl,
+	struct msm_flash_cfg_data_t *flash_data)
+{
+	CDBG("Enter");
+	gpio_direction_output(rear_flash_ctrl->rear_gpio_torch,0);
+	gpio_direction_output(rear_flash_ctrl->rear_gpio_flash,0);
+	mdelay(2);
+	CDBG("Exit");
+	return 0;
+}
+static int32_t msm_flash_sgm3785_low(struct msm_flash_ctrl_t *flash_ctrl,
+	struct msm_flash_cfg_data_t *flash_data)
+{
+	CDBG("Enter");
+	msm_rear_leds_sgm3785_brightness_set(LED_HALF);
+	CDBG("Exit");
+	return 0;
+}
+static int32_t msm_flash_sgm3785_high(struct msm_flash_ctrl_t *flash_ctrl,
+	struct msm_flash_cfg_data_t *flash_data)
+{
+	CDBG("Enter");
+	msm_rear_leds_sgm3785_brightness_set(LED_FULL);
+	CDBG("Exit");
+	return 0;
+}
+#endif
 
 static int32_t msm_flash_i2c_write_setting_array(
 	struct msm_flash_ctrl_t *flash_ctrl,
@@ -1066,6 +1357,59 @@ static int32_t msm_flash_get_dt_data(struct device_node *of_node,
 	CDBG("%s:%d fctrl->flash_driver_type = %d", __func__, __LINE__,
 		fctrl->flash_driver_type);
 
+#ifdef AW3640_FLASH
+if (fctrl->flash_driver_type == FLASH_DRIVER_AW3640)
+{
+//front flash
+	fctrl->front_gpio_flash = of_get_named_gpio(of_node, "front-gpio-flash", 0);
+	rc  =  of_property_read_string_index(of_node,"qcom,front-gpios-flash-label",
+                                                                 0,&fctrl->front_gpio_flash_labs);
+	if(rc < 0){
+              pr_err("%d:get front  flash gpio -label failed \n",__LINE__);
+              rc = 0;
+	}else {
+              rc = gpio_request_one(fctrl->front_gpio_flash,0,fctrl->front_gpio_flash_labs);
+              if(rc < 0){
+                    pr_err("%d:request front  flash gpio  failed \n",__LINE__);
+                    rc = 0;
+              }
+	}
+}
+ #endif
+ #ifdef SGM3785_FLASH
+ if (fctrl->flash_driver_type == FLASH_DRIVER_SGM3785)
+{
+ //rear torch
+	fctrl->rear_gpio_torch = of_get_named_gpio(of_node, "rear-gpio-torch", 0);
+	rc  =  of_property_read_string_index(of_node,"qcom,rear-gpios-torch-label",
+                                                                 0,&fctrl->rear_gpio_torch_labs);
+	if(rc < 0){
+              pr_err("%d:get rear  torch gpio -label failed \n",__LINE__);
+              rc = 0;
+	}else {
+		rc = gpio_request_one(fctrl->rear_gpio_torch,0,fctrl->rear_gpio_torch_labs);
+		if(rc < 0){
+                   pr_err("%d:request rear  torch gpio  failed \n",__LINE__);
+                   rc = 0;
+		}
+	}
+//rear flash
+	fctrl->rear_gpio_flash = of_get_named_gpio(of_node, "rear-gpio-flash", 0);
+	rc  =  of_property_read_string_index(of_node,"qcom,rear-gpios-flash-label",
+                                                                 0,&fctrl->rear_gpio_flash_labs);
+	if(rc < 0){
+              pr_err("%d:get rear flash  gpio -label failed \n",__LINE__);
+              rc = 0;
+	}else {
+              rc = gpio_request_one(fctrl->rear_gpio_flash,0,fctrl->rear_gpio_flash_labs);
+              if(rc < 0){
+                   pr_err("%d:request rear flash  gpio  failed \n",__LINE__);
+                   rc = 0;
+              }
+	}
+ }	
+ #endif
+
 	return rc;
 }
 
@@ -1296,6 +1640,21 @@ static int32_t msm_flash_platform_probe(struct platform_device *pdev)
 	if (flash_ctrl->flash_driver_type == FLASH_DRIVER_PMIC)
 		rc = msm_torch_create_classdev(pdev, flash_ctrl);
 
+#ifdef AW3640_FLASH
+if (flash_ctrl->flash_driver_type == FLASH_DRIVER_AW3640)
+{
+       rc = msm_front_leds_create_classdev(&pdev->dev,flash_ctrl);
+       front_flash_ctrl = flash_ctrl;
+}	   
+#endif
+#ifdef SGM3785_FLASH
+if (flash_ctrl->flash_driver_type == FLASH_DRIVER_SGM3785)
+{
+       rc = msm_rear_leds_create_classdev(&pdev->dev,flash_ctrl);
+       rear_flash_ctrl = flash_ctrl;
+}	   
+#endif
+
 	CDBG("probe success\n");
 	return rc;
 }
@@ -1381,6 +1740,39 @@ static struct msm_flash_table msm_i2c_flash_table = {
 		.camera_flash_high = msm_flash_i2c_write_setting_array,
 	},
 };
+
+#ifdef  AW3640_FLASH
+static struct msm_flash_table msm_aw3640_flash_table = {
+	.flash_driver_type = FLASH_DRIVER_AW3640,
+	.func_tbl = {
+
+		.camera_flash_init = msm_flash_aw3640_init,
+		.camera_flash_release = msm_flash_aw3640_release,
+		.camera_flash_off = msm_flash_aw3640_off,
+		.camera_flash_low = msm_flash_aw3640_low,
+		.camera_flash_high = msm_flash_aw3640_high,
+		.camera_flash_torch_low = msm_flash_aw3640_torch_low,
+		.camera_flash_torch_mid = msm_flash_aw3640_torch_mid,
+		.camera_flash_torch_high = msm_flash_aw3640_torch_high,
+	},
+};
+#endif
+#ifdef  SGM3785_FLASH
+static struct msm_flash_table msm_sgm3785_flash_table = {
+	.flash_driver_type = FLASH_DRIVER_SGM3785,
+	.func_tbl = {
+
+		.camera_flash_init = msm_flash_sgm3785_init,
+		.camera_flash_release = msm_flash_sgm3785_release,
+		.camera_flash_off = msm_flash_sgm3785_off,
+		.camera_flash_low = msm_flash_sgm3785_low,
+		.camera_flash_high = msm_flash_sgm3785_high,
+		.camera_flash_torch_low = msm_flash_sgm3785_low,
+		.camera_flash_torch_mid = msm_flash_sgm3785_low,
+		.camera_flash_torch_high = msm_flash_sgm3785_low,
+	},
+};
+#endif
 
 module_init(msm_flash_init_module);
 module_exit(msm_flash_exit_module);

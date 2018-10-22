@@ -40,10 +40,11 @@
 #define SAMPLING_RATE_48KHZ     48000
 #define SAMPLING_RATE_96KHZ     96000
 #define SAMPLING_RATE_192KHZ    192000
+#ifdef CONFIG_SND_SOC_ESS9118
 #define SAMPLING_RATE_44P1KHZ   44100
 #define SAMPLING_RATE_88P2KHZ   88200
 #define SAMPLING_RATE_176P4KHZ  176400
-
+#endif
 
 #define PRI_MI2S_ID	(1 << 0)
 #define SEC_MI2S_ID	(1 << 1)
@@ -61,27 +62,35 @@ enum btsco_rates {
 	RATE_8KHZ_ID,
 	RATE_16KHZ_ID,
 };
+#ifdef CONFIG_SND_SOC_ESS9118
 extern int es9118_exist;
+#endif
 static int msm8952_auxpcm_rate = 8000;
 static int msm_btsco_rate = BTSCO_RATE_8KHZ;
 static int msm_btsco_ch = 1;
 static int msm_ter_mi2s_tx_ch = 1;
+#ifdef CONFIG_SND_SOC_ESS9118
 static int msm_quat_mi2s_rx_ch = 2;
+#endif
 static int msm_pri_mi2s_rx_ch = 1;
 static int msm_proxy_rx_ch = 2;
 static int msm_vi_feed_tx_ch = 2;
 static int mi2s_rx_bit_format = SNDRV_PCM_FORMAT_S16_LE;
 static int mi2s_rx_bits_per_sample = 16;
 static int mi2s_rx_sample_rate = SAMPLING_RATE_48KHZ;
+#ifdef CONFIG_SND_SOC_ESS9118
 static int quat_mi2s_sample_rate = SAMPLING_RATE_48KHZ;
 static int quat_mi2s_bit_format = SNDRV_PCM_FORMAT_S24_LE;
+#endif
 
 static atomic_t quat_mi2s_clk_ref;
 static atomic_t quin_mi2s_clk_ref;
 static atomic_t auxpcm_mi2s_clk_ref;
 
+#ifdef CONFIG_SND_SOC_ESS9118
 /* 0 - master, 1  - slave */
 static bool quat_mi2s_master = false;
+#endif
 
 static int msm8952_enable_dig_cdc_clk(struct snd_soc_codec *codec, int enable,
 					bool dapm);
@@ -181,9 +190,11 @@ static const char *const proxy_rx_ch_text[] = {"One", "Two", "Three", "Four",
 static const char *const vi_feed_ch_text[] = {"One", "Two"};
 static char const *mi2s_rx_sample_rate_text[] = {"KHZ_48",
 					"KHZ_96", "KHZ_192"};
+#ifdef CONFIG_SND_SOC_ESS9118
 static char const *quat_rx_sample_rate_text[] = {"KHZ_48", "KHZ_96", "KHZ_192",
 					"KHZ_44P1", "KHZ_88P2", "KHZ_176P4"};
 static const char *const mi2s_work_mode_text[] = {"Slave", "Master"};
+#endif
 
 static inline int param_is_mask(int p)
 {
@@ -392,6 +403,7 @@ static int msm_mi2s_rx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	return 0;
 }
 
+#ifdef CONFIG_SND_SOC_ESS9118
 static int msm_quat_mi2s_rx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 				     struct snd_pcm_hw_params *params)
 {
@@ -408,6 +420,7 @@ static int msm_quat_mi2s_rx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 	param_set_mask(params, SNDRV_PCM_HW_PARAM_FORMAT, quat_mi2s_bit_format);
 	return 0;
 }
+#endif
 
 static int msm_tx_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 				struct snd_pcm_hw_params *params)
@@ -514,6 +527,7 @@ static int msm_mi2s_snd_hw_params(struct snd_pcm_substream *substream,
 	return 0;
 }
 
+#ifdef CONFIG_SND_SOC_ESS9118
 static int msm_quat_mi2s_snd_hw_params(struct snd_pcm_substream *substream,
 			     struct snd_pcm_hw_params *params)
 {
@@ -527,6 +541,7 @@ static int msm_quat_mi2s_snd_hw_params(struct snd_pcm_substream *substream,
 			       SNDRV_PCM_FORMAT_S16_LE);
 	return 0;
 }
+#endif
 
 static int msm8952_get_clk_id(int port_id)
 {
@@ -538,11 +553,13 @@ static int msm8952_get_clk_id(int port_id)
 	case AFE_PORT_ID_TERTIARY_MI2S_TX:
 		return Q6AFE_LPASS_CLK_ID_TER_MI2S_IBIT;
 	case AFE_PORT_ID_QUATERNARY_MI2S_RX:
+#ifdef CONFIG_SND_SOC_ESS9118
 	      if (!quat_mi2s_master) {
 		     return Q6AFE_LPASS_CLK_ID_QUAD_MI2S_IBIT;
 	      } else {
 	            return Q6AFE_LPASS_CLK_ID_QUAD_MI2S_EBIT;
 	      }
+#endif
 	case AFE_PORT_ID_QUATERNARY_MI2S_TX:
 		return Q6AFE_LPASS_CLK_ID_QUAD_MI2S_IBIT;
 	case AFE_PORT_ID_QUINARY_MI2S_RX:
@@ -637,6 +654,7 @@ static int msm_mi2s_sclk_ctl(struct snd_pcm_substream *substream, bool enable)
 				mi2s_rx_clk.enable = enable;
 				mi2s_rx_clk.clk_id =
 						msm8952_get_clk_id(port_id);
+#ifdef CONFIG_SND_SOC_ESS9118
 				if (AFE_PORT_ID_QUATERNARY_MI2S_RX == port_id && es9118_exist==1)  {
 				    if (SNDRV_PCM_FORMAT_S24_LE == quat_mi2s_bit_format ||
 					SNDRV_PCM_FORMAT_S24_3LE == quat_mi2s_bit_format) {
@@ -646,7 +664,9 @@ static int msm_mi2s_sclk_ctl(struct snd_pcm_substream *substream, bool enable)
 				        mi2s_rx_clk.clk_freq_in_hz =
 						 (quat_mi2s_sample_rate * 16 * 2);
 				    }
-				} else {
+				} else
+#endif
+				{
 				    mi2s_rx_clk.clk_freq_in_hz =
 						get_mi2s_rx_clk_val(port_id);
 				}
@@ -1030,6 +1050,7 @@ static int msm_ter_mi2s_tx_ch_put(struct snd_kcontrol *kcontrol,
 	return 1;
 }
 
+#ifdef CONFIG_SND_SOC_ESS9118
 static int quat_mi2s_sample_rate_get(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
 {
@@ -1160,6 +1181,7 @@ static int quat_mi2s_work_mode_put(struct snd_kcontrol *kcontrol,
 
 	return 0;
 }
+#endif
 
 static int msm_vi_feed_tx_ch_get(struct snd_kcontrol *kcontrol,
 	struct snd_ctl_elem_value *ucontrol)
@@ -1194,11 +1216,13 @@ static const struct soc_enum msm_snd_enum[] = {
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(vi_feed_ch_text),
 				vi_feed_ch_text),
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(mi2s_rx_sample_rate_text),
-				mi2s_rx_sample_rate_text),
-	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(quat_rx_sample_rate_text),
+				mi2s_rx_sample_rate_text)
+#ifdef CONFIG_SND_SOC_ESS9118
+	,SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(quat_rx_sample_rate_text),
 	                   quat_rx_sample_rate_text),
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(mi2s_work_mode_text),
 	                   mi2s_work_mode_text)
+#endif
 
 };
 
@@ -1218,13 +1242,15 @@ static const struct snd_kcontrol_new msm_snd_controls[] = {
 	SOC_ENUM_EXT("VI_FEED_TX Channels", msm_snd_enum[5],
 			msm_vi_feed_tx_ch_get, msm_vi_feed_tx_ch_put),
 	SOC_ENUM_EXT("MI2S_RX SampleRate", msm_snd_enum[6],
-			mi2s_rx_sample_rate_get, mi2s_rx_sample_rate_put),
-      SOC_ENUM_EXT("QUAT_MI2S BitWidth", msm_snd_enum[0],
+			mi2s_rx_sample_rate_get, mi2s_rx_sample_rate_put)
+#ifdef CONFIG_SND_SOC_ESS9118
+	,SOC_ENUM_EXT("QUAT_MI2S BitWidth", msm_snd_enum[0],
 			quat_mi2s_bit_format_get, quat_mi2s_bit_format_put),
 	SOC_ENUM_EXT("QUAT_MI2S SampleRate", msm_snd_enum[7],
 			quat_mi2s_sample_rate_get, quat_mi2s_sample_rate_put),
-       SOC_ENUM_EXT("QUAT_MI2S Work Mode", msm_snd_enum[8],
+	SOC_ENUM_EXT("QUAT_MI2S Work Mode", msm_snd_enum[8],
 			quat_mi2s_work_mode_get, quat_mi2s_work_mode_put)
+#endif
 };
 
 static int msm8952_mclk_event(struct snd_soc_dapm_widget *w,
@@ -1627,11 +1653,14 @@ static int msm_quat_mi2s_snd_startup(struct snd_pcm_substream *substream)
 	if (pdata->vaddr_gpio_mux_mic_ctl) {
 		val = ioread32(pdata->vaddr_gpio_mux_mic_ctl);
 		val = val | 0x02020002;
+#ifdef CONFIG_SND_SOC_ESS9118
 		if (quat_mi2s_master) {
 			val = 0x00020000;
 		}
+#endif
 		iowrite32(val, pdata->vaddr_gpio_mux_mic_ctl);
 	}
+#ifdef CONFIG_SND_SOC_ESS9118
 	if (pdata->vaddr_gpio_mux_mic_ext_clk_ctl && es9118_exist==1) {
 		val = ioread32(pdata->vaddr_gpio_mux_mic_ext_clk_ctl);
 		val = 0x00000000;
@@ -1640,7 +1669,7 @@ static int msm_quat_mi2s_snd_startup(struct snd_pcm_substream *substream)
 		}
 		iowrite32(val, pdata->vaddr_gpio_mux_mic_ext_clk_ctl);
 	}
-
+#endif
 	ret = msm_mi2s_sclk_ctl(substream, true);
 	if (ret < 0) {
 		pr_err("failed to enable sclk\n");
@@ -1652,11 +1681,15 @@ static int msm_quat_mi2s_snd_startup(struct snd_pcm_substream *substream)
 		goto err;
 	}
 	if (atomic_inc_return(&quat_mi2s_clk_ref) == 1) {
+#ifdef CONFIG_SND_SOC_ESS9118
 		if (!quat_mi2s_master) {
 		    ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_CBS_CFS);
 		} else {
 		    ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_CBM_CFM);
 		}
+#else
+		ret = snd_soc_dai_set_fmt(cpu_dai, SND_SOC_DAIFMT_CBS_CFS);
+#endif
 		if (ret < 0)
 			pr_err("%s: set fmt cpu dai failed\n", __func__);
 	}
@@ -1880,8 +1913,10 @@ static struct snd_soc_ops msm_pri_auxpcm_be_ops = {
 	.shutdown = msm_prim_auxpcm_shutdown,
 };
 
+#ifdef CONFIG_SND_SOC_ESS9118
 #define ES9118_CODEC_DAI_NAME "es9118-hifi"
 #define ES9118_CODEC_NAME "es9118-codec"
+#endif
 
 /* Digital audio interface glue - connects codec <---> CPU */
 static struct snd_soc_dai_link msm8952_dai[] = {
@@ -3310,6 +3345,7 @@ static int msm8952_asoc_machine_probe(struct platform_device *pdev)
 		goto err1;
 	}
 
+#ifdef CONFIG_SND_SOC_ESS9118
 	if(es9118_exist==1)
 	{
 		muxsel = platform_get_resource_byname(pdev, IORESOURCE_MEM,
@@ -3335,6 +3371,7 @@ static int msm8952_asoc_machine_probe(struct platform_device *pdev)
 		msm8952_quat_mi2s_be_ops.hw_params = msm_quat_mi2s_snd_hw_params;
 
 	}
+#endif
 
 	muxsel = platform_get_resource_byname(pdev, IORESOURCE_MEM,
 			"csr_gp_io_mux_spkr_ctl");
@@ -3597,8 +3634,10 @@ err:
 		iounmap(pdata->vaddr_gpio_mux_spkr_ctl);
 	if (pdata->vaddr_gpio_mux_mic_ctl)
 		iounmap(pdata->vaddr_gpio_mux_mic_ctl);
+#ifdef CONFIG_SND_SOC_ESS9118
 	if (pdata->vaddr_gpio_mux_mic_ext_clk_ctl && es9118_exist==1)
 		iounmap(pdata->vaddr_gpio_mux_mic_ext_clk_ctl);
+#endif
 	if (pdata->vaddr_gpio_mux_pcm_ctl)
 		iounmap(pdata->vaddr_gpio_mux_pcm_ctl);
 	if (pdata->vaddr_gpio_mux_quin_ctl)
@@ -3625,8 +3664,10 @@ static int msm8952_asoc_machine_remove(struct platform_device *pdev)
 		iounmap(pdata->vaddr_gpio_mux_spkr_ctl);
 	if (pdata->vaddr_gpio_mux_mic_ctl)
 		iounmap(pdata->vaddr_gpio_mux_mic_ctl);
+#ifdef CONFIG_SND_SOC_ESS9118
 	if (pdata->vaddr_gpio_mux_mic_ext_clk_ctl && es9118_exist==1)
 		iounmap(pdata->vaddr_gpio_mux_mic_ext_clk_ctl);
+#endif
 	if (pdata->vaddr_gpio_mux_pcm_ctl)
 		iounmap(pdata->vaddr_gpio_mux_pcm_ctl);
 	if (pdata->vaddr_gpio_mux_quin_ctl)
