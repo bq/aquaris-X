@@ -53,7 +53,6 @@ struct thread_info {
 #ifdef CONFIG_ARM64_SW_TTBR0_PAN
 	u64			ttbr0;		/* saved TTBR0_EL1 */
 #endif
-	struct restart_block    restart_block;
 	int			preempt_count;	/* 0 => preemptable, <0 => bug */
 #ifndef CONFIG_THREAD_INFO_IN_TASK
 	int			cpu;		/* cpu */
@@ -74,9 +73,6 @@ struct thread_info {
 	.flags		= 0,						\
 	.preempt_count	= INIT_PREEMPT_COUNT,				\
 	.addr_limit	= KERNEL_DS,					\
-	.restart_block  = {						\
-		.fn     = do_no_restart_syscall,                        \
-        },								\
 }
 
 #define init_thread_info	(init_thread_union.thread_info)

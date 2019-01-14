@@ -31,6 +31,9 @@ enum msm_camera_flash_state_t {
 	MSM_CAMERA_FLASH_LOW,
 	MSM_CAMERA_FLASH_HIGH,
 	MSM_CAMERA_FLASH_RELEASE,
+	MSM_CAMERA_TORCH_HIGH,
+	MSM_CAMERA_TORCH_MID,
+	MSM_CAMERA_TORCH_LOW,
 };
 
 struct msm_flash_ctrl_t;
@@ -107,6 +110,7 @@ struct msm_flash_ctrl_t {
 	bool front_flash_init;
 	uint16_t front_gpio_torch;
 	uint16_t front_gpio_flash;
+	const char * front_gpio_torch_labs;
 	const char * front_gpio_flash_labs;
 	bool rear_flash_init;
 	uint16_t rear_gpio_torch;

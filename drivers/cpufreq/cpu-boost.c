@@ -23,6 +23,14 @@
 #include <linux/input.h>
 #include <linux/time.h>
 
+#define MIN_CPUFEQ_SPECIAL_BOOST 1401000
+#define SPECIAL_BOOST_MS_FP 500
+#define SPECIAL_BOOST_MS_POWERKEY 300
+static unsigned int special_input_boost_ms = SPECIAL_BOOST_MS_POWERKEY;
+module_param(special_input_boost_ms, uint, 0644);
+
+static bool is_special_input_boost = false;
+
 struct cpu_sync {
 	int cpu;
 	unsigned int input_boost_min;
@@ -190,6 +198,8 @@ static void do_input_boost_rem(struct work_struct *work)
 			pr_err("cpu-boost: HMP boost disable failed\n");
 		sched_boost_active = false;
 	}
+	
+	is_special_input_boost=false;
 }
 
 static void do_input_boost(struct work_struct *work)
@@ -203,27 +213,49 @@ static void do_input_boost(struct work_struct *work)
 		sched_boost_active = false;
 	}
 
-	/* Set the input_boost_min for all CPUs in the system */
-	pr_debug("Setting input boost min for all CPUs\n");
-	for_each_possible_cpu(i) {
-		i_sync_info = &per_cpu(sync_info, i);
-		i_sync_info->input_boost_min = i_sync_info->input_boost_freq;
-	}
+	if (is_special_input_boost)
+	{
+		/* Set the input_boost_min for all CPUs in the system */
+		pr_debug("Setting input boost min for all CPUs\n");
+		for_each_possible_cpu(i) {
+			i_sync_info = &per_cpu(sync_info, i);
+			i_sync_info->input_boost_min = MIN_CPUFEQ_SPECIAL_BOOST;
+		}
+		
+		update_policy_online();
 
-	/* Update policies for all online CPUs */
-	update_policy_online();
-
-	/* Enable scheduler boost to migrate tasks to big cluster */
-	if (sched_boost_on_input) {
+		/* Enable scheduler boost to migrate tasks to big cluster */
 		ret = sched_set_boost(1);
 		if (ret)
 			pr_err("cpu-boost: HMP boost enable failed\n");
 		else
 			sched_boost_active = true;
-	}
+		
+		queue_delayed_work(cpu_boost_wq, &input_boost_rem,
+						msecs_to_jiffies(special_input_boost_ms));
+	} else {
+		/* Set the input_boost_min for all CPUs in the system */
+		pr_debug("Setting input boost min for all CPUs\n");
+		for_each_possible_cpu(i) {
+			i_sync_info = &per_cpu(sync_info, i);
+			i_sync_info->input_boost_min = i_sync_info->input_boost_freq;
+		}
 
-	queue_delayed_work(cpu_boost_wq, &input_boost_rem,
-					msecs_to_jiffies(input_boost_ms));
+		/* Update policies for all online CPUs */
+		update_policy_online();
+
+		/* Enable scheduler boost to migrate tasks to big cluster */
+		if (sched_boost_on_input) {
+			ret = sched_set_boost(1);
+			if (ret)
+				pr_err("cpu-boost: HMP boost enable failed\n");
+			else
+				sched_boost_active = true;
+		}
+
+		queue_delayed_work(cpu_boost_wq, &input_boost_rem,
+						msecs_to_jiffies(input_boost_ms));
+	}
 }
 
 static void cpuboost_input_event(struct input_handle *handle,
@@ -231,7 +263,21 @@ static void cpuboost_input_event(struct input_handle *handle,
 {
 	u64 now;
 
-	if (!input_boost_enabled)
+	if (is_special_input_boost)
+		return;
+		
+	if (code == 116 && value == 1) {
+		printk("special boost: power\n");
+		special_input_boost_ms = SPECIAL_BOOST_MS_POWERKEY;
+		is_special_input_boost = true;
+	} else if (code == 608 && value == 1) {
+		printk("special boost: FP_TAP\n");
+		special_input_boost_ms = SPECIAL_BOOST_MS_FP;
+		is_special_input_boost = true;
+	} else {
+		return;
+	}
+	if (!input_boost_enabled && !is_special_input_boost )
 		return;
 
 	now = ktime_to_us(ktime_get());
