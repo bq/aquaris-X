@@ -97,4 +97,3 @@ obj-$(CONFIG_TOUCHSCREEN_FT5X06)	+= lct_tp_fm_info.o
 obj-$(CONFIG_TOUCHSCREEN_FT5X06)	+= lct_ctp_selftest.o
 obj-$(CONFIG_TOUCHSCREEN_FT5X06)	+= lct_ctp_upgrade.o
 obj-$(CONFIG_TOUCHSCREEN_FT5X06)	+= lct_if_ctp_upgrade.o
-obj-$(CONFIG_TOUCHSCREEN_NT36572_ZQL1818)	+= novatek_nt36752a_zql1818/

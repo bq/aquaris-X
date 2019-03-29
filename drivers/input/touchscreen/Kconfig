@@ -1135,8 +1135,6 @@ config TOUCHSCREEN_GT9XX
 	  report 5 touches at a time.
 
           If unsure, say N.
-
-          If unsure, say N.
           
 config TOUCHSCREEN_TP_VERSION
 	default n

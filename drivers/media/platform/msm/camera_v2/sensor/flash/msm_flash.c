@@ -499,6 +499,7 @@ void msm_front_leds_brightness_set(struct led_classdev *led_cdev,
 		prev_level = cur_level;
 	}else{
 		pr_err("front flash off");
+		prev_level = 0;
 		gpio_direction_output(front_flash_ctrl->front_gpio_flash,0);
 		mdelay(4);
 		if(front_flash_ctrl->front_flash_init) {

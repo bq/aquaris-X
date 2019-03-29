@@ -227,6 +227,9 @@ module_param(disable_slots, int, S_IRUGO|S_IWUSR);
 static bool nocmdq;
 module_param(nocmdq, bool, S_IRUGO|S_IWUSR);
 
+static bool boot_to_recovery;
+core_param(boot_to_recovery, boot_to_recovery, bool, 0444);
+
 enum vdd_io_level {
 	/* set vdd_io_data->low_vol_level */
 	VDD_IO_LOW,
@@ -1661,7 +1664,13 @@ struct sdhci_msm_pltfm_data *sdhci_msm_populate_pdata(struct device *dev,
 		goto out;
 	}
 
-	pdata->status_gpio = of_get_named_gpio_flags(np, "cd-gpios", 0, &flags);
+	if (boot_to_recovery && of_find_property(np, "recovery-broken-cd", &len))
+		pdata->status_gpio = -ENOENT;
+	else
+		pdata->status_gpio = of_get_named_gpio_flags(np, "cd-gpios", 0, &flags);
+
+	dev_info(dev, "cd-gpios status_gpio=%d", pdata->status_gpio);
+
 	if (gpio_is_valid(pdata->status_gpio) & !(flags & OF_GPIO_ACTIVE_LOW))
 		pdata->caps2 |= MMC_CAP2_CD_ACTIVE_HIGH;
 
@@ -4385,6 +4394,8 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 			&msm_host->msm_bus_vote.max_bus_bw);
 	if (ret)
 		goto remove_host;
+
+	pr_info("status_gpio=%d valid=%d", msm_host->pdata->status_gpio, gpio_is_valid(msm_host->pdata->status_gpio));
 
 	if (!gpio_is_valid(msm_host->pdata->status_gpio)) {
 		msm_host->polling.show = show_polling;
