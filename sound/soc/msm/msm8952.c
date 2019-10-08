@@ -676,7 +676,7 @@ static int msm_mi2s_sclk_ctl(struct snd_pcm_substream *substream, bool enable)
 				    mi2s_rx_clk.clk_freq_in_hz =
 						get_mi2s_clk_val(port_id);
 				}
-				pr_err("%s: pord_id 0x%x, clk_id 0x%x, clk_freq %d\n", 
+				pr_err("%s: pord_id 0x%x, clk_id 0x%x, clk_freq %d\n",
 					                      __func__, port_id,  mi2s_rx_clk.clk_id, mi2s_rx_clk.clk_freq_in_hz);
 				ret = afe_set_lpass_clock_v2(port_id,
 							&mi2s_rx_clk);
@@ -1886,14 +1886,14 @@ static void *def_msm8952_wcd_mbhc_cal(void)
 	 */
 	btn_low[0] = 75;
 	btn_high[0] = 75;
-	btn_low[1] = 200;
-	btn_high[1] = 200;
-	btn_low[2] = 400;
-	btn_high[2] = 400;
-	btn_low[3] = 500;
-	btn_high[3] = 500;
-	btn_low[4] = 500;
-	btn_high[4] = 500;
+	btn_low[1] = 300;
+	btn_high[1] = 300;
+	btn_low[2] = 500;
+	btn_high[2] = 500;
+	btn_low[3] = 700;
+	btn_high[3] = 700;
+	btn_low[4] = 700;
+	btn_high[4] = 700;
 
 	return msm8952_wcd_cal;
 }

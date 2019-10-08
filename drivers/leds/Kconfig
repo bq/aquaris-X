@@ -567,11 +567,6 @@ config LEDS_AW2013
 	  This option enables support for the AW2013 RGB LED connected
 	  through I2C. Say Y to enable support for the AW2013 LED.
 
-config LEDS_MSM_GPIO_FLASH
-	bool "LED support for MSM GPIO FLASH"
-	help
-	  This option enables support for the MSM GPIO FLASH.
-
 comment "LED Triggers"
 source "drivers/leds/trigger/Kconfig"
 

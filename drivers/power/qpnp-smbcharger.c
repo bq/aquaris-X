@@ -421,7 +421,6 @@ enum wake_reason {
 #define	HVDCP_OTG_VOTER			"HVDCP_OTG_VOTER"
 #define	HVDCP_PULSING_VOTER		"HVDCP_PULSING_VOTER"
 
-#define RUNIN_BATT_CAPACITY_CONTROL
 #ifdef RUNIN_BATT_CAPACITY_CONTROL
 static int BatteryTestStatus_enable;
 static void runin_work(struct smbchg_chip *chip, int batt_capacity);
@@ -8801,6 +8800,8 @@ static int smbchg_probe(struct spmi_device *spmi)
 	}
 
 #ifdef RUNIN_BATT_CAPACITY_CONTROL
+	BatteryTestStatus_enable = 1;
+
 	for (attr_count = 0; attr_count < ARRAY_SIZE(attrs); attr_count++) {
 		rc = sysfs_create_file(&chip->dev->kobj,
 						&attrs[attr_count].attr);

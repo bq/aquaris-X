@@ -35,6 +35,8 @@
 
 #define DM_VERITY_OPTS_MAX		(2 + DM_VERITY_OPTS_FEC)
 
+extern int ignore_fs_panic;
+
 static unsigned dm_verity_prefetch_cluster = DM_VERITY_DEFAULT_PREFETCH_SIZE;
 
 module_param_named(prefetch_cluster, dm_verity_prefetch_cluster, uint, S_IRUGO | S_IWUSR);
@@ -201,6 +203,12 @@ static int verity_handle_err(struct dm_verity *v, enum verity_block_type type,
 
 	/* Corruption should be visible in device status in all modes */
 	v->hash_failed = 1;
+
+	if (ignore_fs_panic) {
+		DMERR("%s: During cleanup for shutdown. Skipping %s",
+			v->data_dev->name, __func__);
+		return 0;
+	}
 
 	if (v->corrupted_errs >= DM_VERITY_MAX_CORRUPTED_ERRS)
 		goto out;

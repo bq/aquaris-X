@@ -63,7 +63,6 @@ obj-$(CONFIG_LEDS_MENF21BMC)		+= leds-menf21bmc.o
 obj-$(CONFIG_LEDS_MSM_GPIO_FLASH)	+= leds-msm-gpio-flash.o
 obj-$(CONFIG_LEDS_AW2013)		+= leds-aw2013.o
 obj-$(CONFIG_LEDS_KTD2026)		+= leds-ktd2026.o
-obj-$(CONFIG_LEDS_MSM_GPIO_FLASH)	+= leds-msm-gpio-flash.o
 
 # LED SPI Drivers
 obj-$(CONFIG_LEDS_DAC124S085)		+= leds-dac124s085.o
